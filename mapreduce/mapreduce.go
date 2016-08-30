@@ -66,8 +66,6 @@ func RunMaster(task *Task, hostname string) {
 
 	go master.acceptMultipleConnections()
 
-	go master.heartMonitor(5)
-
 	master.runMaps(task)
 
 	<-master.done

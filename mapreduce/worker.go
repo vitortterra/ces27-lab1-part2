@@ -15,12 +15,6 @@ type Worker struct {
 	rpcServer      *rpc.Server
 }
 
-func (worker *Worker) HeartBeat(args *HeartBeatArgs, reply *HeartBeatReply) error {
-	log.Println("HeartBeat:", args.Beat)
-	*reply = HeartBeatReply{true}
-	return nil
-}
-
 func (worker *Worker) echo(msg string) {
 	args := &EchoArgs{msg}
 
@@ -29,6 +23,11 @@ func (worker *Worker) echo(msg string) {
 	if err != nil {
 		log.Println("Echo failed. Error:", err)
 	}
+}
+
+func (worker *Worker) RunMap(args *RunMapArgs, _ *struct{}) error {
+	log.Println("Running map with file:", args.RawUrl)
+	return nil
 }
 
 func (worker *Worker) register() error {
@@ -51,14 +50,13 @@ func (worker *Worker) register() error {
 
 func (worker *Worker) heartMonitor(hb int) {
 	var (
-		err     error
-		counter int64 = 0
+		err error
 	)
 
 	for {
-		log.Println("Sending HeartBeat", counter)
+		log.Println("Sending HeartBeat")
 
-		args := &HeartBeatArgs{counter}
+		args := &HeartBeatArgs{worker.id}
 		var reply HeartBeatReply
 		err = worker.callMaster("Master.HeartBeat", args, &reply)
 
@@ -66,7 +64,10 @@ func (worker *Worker) heartMonitor(hb int) {
 			log.Println("HeartBeat failed. Error:", err)
 		}
 
-		counter++
+		if !reply.Ok {
+			log.Fatal("Not recognized by Master.")
+		}
+
 		time.Sleep(time.Duration(hb) * time.Second)
 	}
 }

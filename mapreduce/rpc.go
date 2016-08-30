@@ -13,9 +13,13 @@ type RegisterReply struct {
 }
 
 type HeartBeatArgs struct {
-	Beat int64
+	WorkerId int
 }
 
 type HeartBeatReply struct {
 	Ok bool
+}
+
+type RunMapArgs struct {
+	RawUrl string
 }

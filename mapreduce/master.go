@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -14,19 +15,27 @@ type Master struct {
 	address       string
 	listener      net.Listener
 	done          chan bool
-	workers       []RemoteWorker
+	workers       map[int]*RemoteWorker
 	workerCounter int
 }
 
 type RemoteWorker struct {
 	hostname string
+	status   workerStatus
 }
+
+type workerStatus string
+
+const (
+	WORKER_IDLE    workerStatus = "idle"
+	WORKER_RUNNING workerStatus = "running"
+)
 
 func newMaster(address string) (master *Master) {
 	master = new(Master)
 	master.address = address
 	master.done = make(chan bool)
-	master.workers = make([]RemoteWorker, 0)
+	master.workers = make(map[int]*RemoteWorker)
 	master.workerCounter = 0
 	return
 }
@@ -40,16 +49,30 @@ func (master *Master) Register(args *RegisterArgs, reply *RegisterReply) error {
 	log.Println("Registering worker", args.WorkerHostname)
 
 	master.workersMutex.Lock()
-	master.workers = append(master.workers, RemoteWorker{args.WorkerHostname})
 	master.workerCounter++
+	master.workers[master.workerCounter] = &RemoteWorker{args.WorkerHostname, WORKER_IDLE}
 	master.workersMutex.Unlock()
 
 	*reply = RegisterReply{master.workerCounter}
 	return nil
 }
 
+var globalDeath int = 0
+
 func (master *Master) HeartBeat(args *HeartBeatArgs, reply *HeartBeatReply) error {
-	*reply = HeartBeatReply{true}
+	var (
+		workerExists bool = false
+	)
+
+	master.workersMutex.Lock()
+	if _, ok := master.workers[args.WorkerId]; ok {
+		workerExists = true
+	} else {
+		log.Println("Unrecognized Client with Id", args.WorkerId)
+	}
+	master.workersMutex.Unlock()
+
+	*reply = HeartBeatReply{workerExists}
 	return nil
 }
 
@@ -84,50 +107,61 @@ func (master *Master) handleConnection(conn *net.Conn) error {
 	return nil
 }
 
-func (master *Master) heartMonitor(hb int) {
-	var (
-		counter int64 = 0
-		alive   int
-		total   int
-	)
+func (master *Master) runMaps(task *Task) {
+	log.Println("Running map operations")
+	for url := range task.InputURLChan {
+		for {
+			started := false
 
-	for {
-		log.Println("Sending HeartBeat")
-		alive = 0
-		total = len(master.workers)
-		for _, w := range master.workers {
-			client, err := rpc.Dial("tcp", w.hostname)
-
-			if err != nil {
-				log.Println("Client dial failed. Err: ", err)
-				continue
+			master.workersMutex.Lock()
+			for i := 1; i <= master.workerCounter; i++ {
+				if master.workers[i].status == WORKER_IDLE {
+					master.workers[i].status = WORKER_RUNNING
+					go runMap(master.workers[i], url)
+					started = true
+					break
+				}
 			}
+			master.workersMutex.Unlock()
 
-			args := &HeartBeatArgs{counter}
-			var reply HeartBeatReply
-			err = client.Call("Worker.HeartBeat", args, &reply)
-
-			if err != nil {
-				log.Println("HeartBeat failed. Error:", err)
-				continue
+			if !started {
+				log.Println("No worker available.")
+				time.Sleep(time.Duration(3) * time.Second)
 			}
-
-			err = client.Close()
-			if err != nil {
-				log.Println("Close failed. Error:", err)
-				continue
-			}
-
-			alive++
 		}
-		counter++
-		log.Printf("Alive/Total: %v/%v\n", alive, total)
-		time.Sleep(time.Duration(hb) * time.Second)
 	}
 }
 
-func (master *Master) runMaps(task *Task) {
-	for v := range task.InputChan {
-		log.Println("Should schedule with len: ", len(v))
+func runMap(remoteWorker *RemoteWorker, url *url.URL) {
+	log.Println("Running", url.String())
+	args := new(RunMapArgs)
+	args.RawUrl = url.String()
+	err := remoteWorker.callRemoteWorker("Worker.RunMap", args, new(struct{}))
+
+	if err != nil {
+		log.Println("RunMap Failed. Error:", err)
 	}
+}
+
+func (worker *RemoteWorker) callRemoteWorker(proc string, args interface{}, reply interface{}) error {
+	var (
+		err    error
+		client *rpc.Client
+	)
+
+	client, err = rpc.Dial("tcp", worker.hostname)
+
+	if err != nil {
+		return err
+	}
+
+	defer client.Close()
+
+	err = client.Call(proc, args, reply)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
