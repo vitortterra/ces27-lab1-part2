@@ -47,6 +47,9 @@ func fanInData(numFiles int) chan []byte {
 	return input
 }
 
+// fanInFilePath will run a goroutine that returns the path of files created during
+// splitData. These paths will be sent to remote workers so they can access the data
+// and run map operations on it.
 func fanInFilePath(numFiles int, fileHostname string) chan string {
 	var (
 		inputChan chan string

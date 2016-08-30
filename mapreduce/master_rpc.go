@@ -4,20 +4,18 @@ import (
 	"log"
 )
 
-func (master *Master) Echo(args *EchoArgs, _ *struct{}) error {
-	log.Println(args.Msg)
-	return nil
-}
-
+// RPC - Register
+// Procedure that will be called by workers to register within this master.
 func (master *Master) Register(args *RegisterArgs, reply *RegisterReply) error {
-	log.Println("Registering worker", args.WorkerHostname)
+	log.Printf("Registering worker %v with hostname %v", master.totalWorkers, args.WorkerHostname)
 
 	master.workersMutex.Lock()
-	master.workerCounter++
-	master.workers[master.workerCounter] = &RemoteWorker{args.WorkerHostname, WORKER_IDLE}
+	master.workers = append(master.workers, &RemoteWorker{master.totalWorkers, args.WorkerHostname, WORKER_IDLE})
 	master.workersMutex.Unlock()
 
-	*reply = RegisterReply{master.workerCounter}
+	*reply = RegisterReply{master.totalWorkers}
+
+	master.totalWorkers++
 	return nil
 }
 
@@ -41,6 +39,8 @@ func (master *Master) ReduceDone(args *ReduceDoneArgs, _ *struct{}) error {
 	return nil
 }
 
+// RPC - HeartBeat
+// Procedure that will be called by workers to send a heartbeat to master.
 func (master *Master) HeartBeat(args *HeartBeatArgs, reply *HeartBeatReply) error {
 	var (
 		workerExists bool = false
@@ -50,7 +50,7 @@ func (master *Master) HeartBeat(args *HeartBeatArgs, reply *HeartBeatReply) erro
 	if _, ok := master.workers[args.WorkerId]; ok {
 		workerExists = true
 	} else {
-		log.Println("Unrecognized Client with Id", args.WorkerId)
+		log.Printf("Unrecognized Client with Id %v\n", args.WorkerId)
 	}
 	master.workersMutex.Unlock()
 

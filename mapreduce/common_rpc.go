@@ -1,9 +1,5 @@
 package mapreduce
 
-type EchoArgs struct {
-	Msg string
-}
-
 type RegisterArgs struct {
 	WorkerHostname string
 }

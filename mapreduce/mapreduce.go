@@ -22,7 +22,7 @@ func RunSequential(task *Task) {
 
 	log.Print("Running RunSequential...")
 
-	_ = os.Mkdir(REDUCE_PATH, os.ModeDir)
+	_ = os.Mkdir(REDUCE_PATH, os.ModePerm)
 
 	for v := range task.InputChan {
 		mapResult = task.Map(v)
@@ -41,38 +41,48 @@ func RunSequential(task *Task) {
 	return
 }
 
+// RunMaster will start a master node on the map reduce operations.
+// 	- task: the Task object that contains the mapreduce operation.
+//  - hostname: the tcp/ip address on which it will listen for connections.
 func RunMaster(task *Task, hostname string) {
 	var (
-		err      error
-		master   *Master
-		rpcs     *rpc.Server
-		listener net.Listener
+		err          error
+		master       *Master
+		newRpcServer *rpc.Server
+		listener     net.Listener
 	)
 
 	log.Println("Running Master on", hostname)
+
+	// Create a reduce directory to store intemediate reduce files.
+	_ = os.Mkdir(REDUCE_PATH, os.ModePerm)
+
 	master = newMaster(hostname)
 
-	_ = os.Mkdir(REDUCE_PATH, os.ModeDir)
+	newRpcServer = rpc.NewServer()
+	newRpcServer.Register(master)
 
-	rpcs = rpc.NewServer()
-	rpcs.Register(master)
-	master.rpcServer = rpcs
+	if err != nil {
+		log.Panicln("Failed to register RPC server. Error:", err)
+	}
+
+	master.rpcServer = newRpcServer
 
 	listener, err = net.Listen("tcp", master.address)
 
 	if err != nil {
-		log.Panic(err)
+		log.Panicln("Failed to start TCP server. Error:", err)
 	}
 
 	master.listener = listener
 
 	go master.acceptMultipleConnections()
 
-	master.runMaps(task)
+	master.scheduleMaps(task)
 
 	mergeLocal(task, master.mapCounter)
 
-	master.runReduces(task)
+	master.scheduleReduces(task)
 	return
 }
 
@@ -85,6 +95,8 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 	)
 
 	log.Println("Running Worker on", hostname)
+
+	_ = os.Mkdir(REDUCE_PATH, os.ModePerm)
 
 	worker = new(Worker)
 	worker.hostname = hostname

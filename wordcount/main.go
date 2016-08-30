@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	// Run mode configuration settings
-	mode       = flag.String("mode", "distributed", "Run mode: distributed or split")
+	// Run mode settings
+	mode       = flag.String("mode", "distributed", "Run mode: distributed or sequential")
 	nodeType   = flag.String("type", "worker", "Node type: master or worker")
 	reduceJobs = flag.Int("reducejobs", 5, "Number of reduce jobs that should be run")
 
@@ -24,7 +24,7 @@ var (
 	master = flag.String("master", "localhost:5000", "Master address")
 )
 
-// Entry point
+// Code Entry Point
 func main() {
 	var (
 		err      error
@@ -35,10 +35,8 @@ func main() {
 
 	flag.Parse()
 
-	log.Println("Running in", *mode, "mode.")
-
-	_ = os.Mkdir(MAP_PATH, os.ModeDir)
-	_ = os.Mkdir(RESULT_PATH, os.ModeDir)
+	_ = os.Mkdir(MAP_PATH, os.ModePerm)
+	_ = os.Mkdir(RESULT_PATH, os.ModePerm)
 
 	// Initialize mapreduce.Task object with the channels created above and functions
 	// mapFunc, shufflerFunc and reduceFunc defined in wordcount.go
@@ -49,8 +47,38 @@ func main() {
 		NumReduceJobs: *reduceJobs,
 	}
 
+	log.Println("Running in", *mode, "mode.")
+
 	switch *mode {
+	case "sequential":
+		// Sequential runs all map and reduce operations in a single core
+		// in order. Its used to test Map and Reduce implementations.
+		var (
+			waitForIt chan bool
+			fanIn     chan []byte
+			fanOut    chan []mapreduce.KeyValue
+		)
+		// Splits data into chunks with size up to chunkSize
+		if numFiles, err = splitData(*file, *chunkSize); err != nil {
+			log.Fatal(err)
+		}
+
+		fanIn = fanInData(numFiles)
+		fanOut, waitForIt = fanOutData()
+
+		task.InputChan = fanIn
+		task.OutputChan = fanOut
+
+		mapreduce.RunSequential(task)
+
+		// Wait for fanOut to finish writing data to storage.
+		// Legen..
+		<-waitForIt
+		// ..dary!
+
 	case "distributed":
+		// Distributed runs the map and reduce operations in remote workers
+		// that are registered with a master.
 		switch *nodeType {
 		case "master":
 			var (
@@ -84,6 +112,7 @@ func main() {
 			log.Println("Master:", *master)
 
 			hostname = *addr + ":" + strconv.Itoa(*port)
+
 			mapreduce.RunWorker(task, hostname, *master)
 		}
 	}

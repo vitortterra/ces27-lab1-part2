@@ -8,24 +8,20 @@ import (
 )
 
 type Worker struct {
-	id             int
+	id int
+
+	// Network
 	hostname       string
 	masterHostname string
 	listener       net.Listener
 	rpcServer      *rpc.Server
-	task           *Task
+
+	// Operation
+	task *Task
 }
 
-func (worker *Worker) echo(msg string) {
-	args := &EchoArgs{msg}
-
-	err := worker.callMaster("Master.Echo", args, new(struct{}))
-
-	if err != nil {
-		log.Println("Echo failed. Error:", err)
-	}
-}
-
+// Call RPC Register on Master to notify that this worker is ready
+// to receive operations.
 func (worker *Worker) register() error {
 	var (
 		err   error
@@ -33,27 +29,35 @@ func (worker *Worker) register() error {
 		reply *RegisterReply
 	)
 
+	log.Println("Registering with Master")
+
 	args = new(RegisterArgs)
 	args.WorkerHostname = worker.hostname
+
 	reply = new(RegisterReply)
+
 	err = worker.callMaster("Master.Register", args, reply)
 
 	worker.id = reply.WorkerId
-	log.Println("Worker Id:", worker.id)
+	log.Printf("Registered. WorkerId: %v\n", worker.id)
 
 	return err
 }
 
+// heartMonitor will repeatedly send information about this worker to Master.
 func (worker *Worker) heartMonitor(hb int) {
 	var (
-		err error
+		err   error
+		args  *HeartBeatArgs
+		reply *HeartBeatReply
 	)
 
 	for {
 		log.Println("Sending HeartBeat")
 
-		args := &HeartBeatArgs{worker.id}
-		var reply HeartBeatReply
+		args = &HeartBeatArgs{worker.id}
+		reply = new(HeartBeatReply)
+
 		err = worker.callMaster("Master.HeartBeat", args, &reply)
 
 		if err != nil {
@@ -68,6 +72,14 @@ func (worker *Worker) heartMonitor(hb int) {
 	}
 }
 
+// Handle a single connection until it's done, then closes it.
+func (worker *Worker) handleConnection(conn *net.Conn) error {
+	worker.rpcServer.ServeConn(*conn)
+	(*conn).Close()
+	return nil
+}
+
+// Connect to Master and call remote procedure.
 func (worker *Worker) callMaster(proc string, args interface{}, reply interface{}) error {
 	var (
 		err    error
@@ -75,7 +87,6 @@ func (worker *Worker) callMaster(proc string, args interface{}, reply interface{
 	)
 
 	client, err = rpc.Dial("tcp", worker.masterHostname)
-
 	if err != nil {
 		return err
 	}
@@ -83,18 +94,9 @@ func (worker *Worker) callMaster(proc string, args interface{}, reply interface{
 	defer client.Close()
 
 	err = client.Call(proc, args, reply)
-
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (worker *Worker) handleConnection(conn *net.Conn) error {
-	log.Println("Serving RPCS to", (*conn).RemoteAddr())
-	worker.rpcServer.ServeConn(*conn)
-	log.Println("Closing connection to", (*conn).RemoteAddr())
-	(*conn).Close()
 	return nil
 }
