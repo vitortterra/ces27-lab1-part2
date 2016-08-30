@@ -3,6 +3,9 @@ package main
 import (
 	"github.com/pauloaguiar/ces27-lab1-part2/mapreduce"
 	"hash/fnv"
+	"strconv"
+	"strings"
+	"unicode"
 )
 
 // mapFunc is called for each array of bytes read from the splitted files. For wordcount
@@ -20,7 +23,28 @@ func mapFunc(input []byte) (result []mapreduce.KeyValue) {
 	/////////////////////////
 	// YOUR CODE GOES HERE //
 	/////////////////////////
-	return make([]mapreduce.KeyValue, 0)
+	var (
+		text          string
+		delimiterFunc func(c rune) bool
+		words         []string
+	)
+
+	text = string(input)
+
+	delimiterFunc = func(c rune) bool {
+		return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+	}
+
+	words = strings.FieldsFunc(text, delimiterFunc)
+
+	result = make([]mapreduce.KeyValue, 0)
+
+	for _, word := range words {
+		kv := mapreduce.KeyValue{strings.ToLower(word), "1"}
+		result = append(result, kv)
+	}
+
+	return result
 }
 
 // reduceFunc is called for each merged array of KeyValue resulted from all map jobs.
@@ -40,7 +64,36 @@ func reduceFunc(input []mapreduce.KeyValue) (result []mapreduce.KeyValue) {
 	/////////////////////////
 	// YOUR CODE GOES HERE //
 	/////////////////////////
-	return make([]mapreduce.KeyValue, 0)
+	var (
+		countersMap map[string]int
+	)
+
+	countersMap = make(map[string]int)
+	for _, kv := range input {
+		if _, ok := countersMap[kv.Key]; !ok {
+			value, err := strconv.Atoi(kv.Value)
+			if err != nil {
+				countersMap[kv.Key] = 1
+			} else {
+				countersMap[kv.Key] = value
+			}
+		} else {
+			value, err := strconv.Atoi(kv.Value)
+			if err != nil {
+				countersMap[kv.Key] += 1
+			} else {
+				countersMap[kv.Key] += value
+			}
+		}
+	}
+
+	result = make([]mapreduce.KeyValue, 0, len(countersMap))
+
+	for k, v := range countersMap {
+		result = append(result, mapreduce.KeyValue{k, strconv.Itoa(v)})
+	}
+
+	return result
 }
 
 // shuffleFunc will shuffle map job results into different job tasks. It should assert that

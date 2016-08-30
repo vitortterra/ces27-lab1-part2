@@ -13,6 +13,7 @@ type Worker struct {
 	masterHostname string
 	listener       net.Listener
 	rpcServer      *rpc.Server
+	task           *Task
 }
 
 func (worker *Worker) echo(msg string) {
@@ -23,11 +24,6 @@ func (worker *Worker) echo(msg string) {
 	if err != nil {
 		log.Println("Echo failed. Error:", err)
 	}
-}
-
-func (worker *Worker) RunMap(args *RunMapArgs, _ *struct{}) error {
-	log.Println("Running map with file:", args.RawUrl)
-	return nil
 }
 
 func (worker *Worker) register() error {

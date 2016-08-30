@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"unicode"
@@ -48,25 +47,25 @@ func fanInData(numFiles int) chan []byte {
 	return input
 }
 
-func fanInUrl(numFiles int, fileHostname string) chan *url.URL {
+func fanInFilePath(numFiles int, fileHostname string) chan string {
 	var (
-		input  chan *url.URL
-		newURL *url.URL
+		inputChan chan string
+		filePath  string
 	)
 
-	input = make(chan *url.URL)
+	inputChan = make(chan string)
 
 	go func() {
 		for i := 0; i < numFiles; i++ {
-			newURL, _ = url.Parse(fileHostname + "/" + fmt.Sprintf("map-%v", i))
+			filePath = mapFileName(i)
 
-			log.Println("Fanning in URL", newURL.String())
-			input <- newURL
+			log.Println("Fanning in file path", filePath)
+			inputChan <- filePath
 		}
 
-		close(input)
+		close(inputChan)
 	}()
-	return input
+	return inputChan
 }
 
 // fanOutData will run a goroutine that receive data on the one-way channel and will

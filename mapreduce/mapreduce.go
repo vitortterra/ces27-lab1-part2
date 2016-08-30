@@ -52,6 +52,8 @@ func RunMaster(task *Task, hostname string) {
 	log.Println("Running Master on", hostname)
 	master = newMaster(hostname)
 
+	_ = os.Mkdir(REDUCE_PATH, os.ModeDir)
+
 	rpcs = rpc.NewServer()
 	rpcs.Register(master)
 	master.rpcServer = rpcs
@@ -68,7 +70,9 @@ func RunMaster(task *Task, hostname string) {
 
 	master.runMaps(task)
 
-	<-master.done
+	mergeLocal(task, master.mapCounter)
+
+	master.runReduces(task)
 	return
 }
 
@@ -85,6 +89,7 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 	worker = new(Worker)
 	worker.hostname = hostname
 	worker.masterHostname = masterHostname
+	worker.task = task
 
 	rpcs = rpc.NewServer()
 	rpcs.Register(worker)

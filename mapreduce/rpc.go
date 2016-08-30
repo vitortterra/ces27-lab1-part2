@@ -21,5 +21,21 @@ type HeartBeatReply struct {
 }
 
 type RunMapArgs struct {
-	RawUrl string
+	MapId    int
+	FilePath string
+}
+
+type RunReduceArgs struct {
+	ReduceId int
+	FilePath string
+}
+
+type MapDoneArgs struct {
+	WorkerId int
+	MapId    int
+}
+
+type ReduceDoneArgs struct {
+	WorkerId int
+	ReduceId int
 }

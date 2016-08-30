@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/pauloaguiar/ces27-lab1-part2/mapreduce"
 	"log"
-	"net/url"
 	"os"
 	"strconv"
 )
@@ -17,7 +16,7 @@ var (
 
 	// Input data settings
 	file      = flag.String("file", "files/pg1342.txt", "File to use as input")
-	chunkSize = flag.Int("chunksize", 10*1024, "Size of data chunks that should be passed to map jobs(in bytes)")
+	chunkSize = flag.Int("chunksize", 100*1024, "Size of data chunks that should be passed to map jobs(in bytes)")
 
 	// Network settings
 	addr   = flag.String("addr", "localhost", "IP address to listen on")
@@ -41,13 +40,23 @@ func main() {
 	_ = os.Mkdir(MAP_PATH, os.ModeDir)
 	_ = os.Mkdir(RESULT_PATH, os.ModeDir)
 
+	// Initialize mapreduce.Task object with the channels created above and functions
+	// mapFunc, shufflerFunc and reduceFunc defined in wordcount.go
+	task = &mapreduce.Task{
+		Map:           mapFunc,
+		Shuffle:       shuffleFunc,
+		Reduce:        reduceFunc,
+		NumReduceJobs: *reduceJobs,
+	}
+
 	switch *mode {
 	case "distributed":
 		switch *nodeType {
 		case "master":
 			var (
-				fanIn chan *url.URL
+				fanIn chan string
 			)
+
 			log.Println("NodeType:", *nodeType)
 			log.Println("Reduce Jobs:", *reduceJobs)
 			log.Println("Address:", *addr)
@@ -63,17 +72,8 @@ func main() {
 			}
 
 			// Create fan in and out channels for mapreduce.Task
-			fanIn = fanInUrl(numFiles, hostname)
-
-			// Initialize mapreduce.Task object with the channels created above and functions
-			// mapFunc, shufflerFunc and reduceFunc defined in wordcount.go
-			task = &mapreduce.Task{
-				Map:           mapFunc,
-				Shuffle:       shuffleFunc,
-				Reduce:        reduceFunc,
-				NumReduceJobs: *reduceJobs,
-				InputURLChan:  fanIn,
-			}
+			fanIn = fanInFilePath(numFiles, hostname)
+			task.InputFilePathChan = fanIn
 
 			mapreduce.RunMaster(task, hostname)
 

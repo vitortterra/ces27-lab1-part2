@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
-	"net/url"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -17,6 +17,8 @@ type Master struct {
 	done          chan bool
 	workers       map[int]*RemoteWorker
 	workerCounter int
+	mapCounter    int
+	reduceCounter int
 }
 
 type RemoteWorker struct {
@@ -37,43 +39,9 @@ func newMaster(address string) (master *Master) {
 	master.done = make(chan bool)
 	master.workers = make(map[int]*RemoteWorker)
 	master.workerCounter = 0
+	master.mapCounter = 0
+	master.reduceCounter = 0
 	return
-}
-
-func (master *Master) Echo(args *EchoArgs, _ *struct{}) error {
-	log.Println(args.Msg)
-	return nil
-}
-
-func (master *Master) Register(args *RegisterArgs, reply *RegisterReply) error {
-	log.Println("Registering worker", args.WorkerHostname)
-
-	master.workersMutex.Lock()
-	master.workerCounter++
-	master.workers[master.workerCounter] = &RemoteWorker{args.WorkerHostname, WORKER_IDLE}
-	master.workersMutex.Unlock()
-
-	*reply = RegisterReply{master.workerCounter}
-	return nil
-}
-
-var globalDeath int = 0
-
-func (master *Master) HeartBeat(args *HeartBeatArgs, reply *HeartBeatReply) error {
-	var (
-		workerExists bool = false
-	)
-
-	master.workersMutex.Lock()
-	if _, ok := master.workers[args.WorkerId]; ok {
-		workerExists = true
-	} else {
-		log.Println("Unrecognized Client with Id", args.WorkerId)
-	}
-	master.workersMutex.Unlock()
-
-	*reply = HeartBeatReply{workerExists}
-	return nil
 }
 
 func (master *Master) acceptMultipleConnections() error {
@@ -108,8 +76,10 @@ func (master *Master) handleConnection(conn *net.Conn) error {
 }
 
 func (master *Master) runMaps(task *Task) {
+	var wg sync.WaitGroup
+
 	log.Println("Running map operations")
-	for url := range task.InputURLChan {
+	for filePath := range task.InputFilePathChan {
 		for {
 			started := false
 
@@ -117,7 +87,9 @@ func (master *Master) runMaps(task *Task) {
 			for i := 1; i <= master.workerCounter; i++ {
 				if master.workers[i].status == WORKER_IDLE {
 					master.workers[i].status = WORKER_RUNNING
-					go runMap(master.workers[i], url)
+					wg.Add(1)
+					go runMap(master.workers[i], filePath, master.mapCounter, &wg)
+					master.mapCounter++
 					started = true
 					break
 				}
@@ -127,20 +99,76 @@ func (master *Master) runMaps(task *Task) {
 			if !started {
 				log.Println("No worker available.")
 				time.Sleep(time.Duration(3) * time.Second)
+			} else {
+				break
 			}
 		}
 	}
+
+	wg.Wait()
+	log.Println("Map Completed")
 }
 
-func runMap(remoteWorker *RemoteWorker, url *url.URL) {
-	log.Println("Running", url.String())
-	args := new(RunMapArgs)
-	args.RawUrl = url.String()
+func runMap(remoteWorker *RemoteWorker, filePath string, mapId int, wg *sync.WaitGroup) {
+	log.Println("Running", filePath)
+	args := &RunMapArgs{mapId, filePath}
 	err := remoteWorker.callRemoteWorker("Worker.RunMap", args, new(struct{}))
 
 	if err != nil {
 		log.Println("RunMap Failed. Error:", err)
 	}
+
+	wg.Done()
+	return
+}
+
+func (master *Master) runReduces(task *Task) {
+	var wg sync.WaitGroup
+
+	log.Println("Running reduce operations")
+	for r := 0; r < task.NumReduceJobs; r++ {
+		filePath := filepath.Join(REDUCE_PATH, mergeReduceName(r))
+
+		for {
+			started := false
+
+			master.workersMutex.Lock()
+			for i := 1; i <= master.workerCounter; i++ {
+				if master.workers[i].status == WORKER_IDLE {
+					master.workers[i].status = WORKER_RUNNING
+					wg.Add(1)
+					go runReduce(master.workers[i], filePath, master.reduceCounter, &wg)
+					master.reduceCounter++
+					started = true
+					break
+				}
+			}
+			master.workersMutex.Unlock()
+
+			if !started {
+				log.Println("No worker available.")
+				time.Sleep(time.Duration(3) * time.Second)
+			} else {
+				break
+			}
+		}
+	}
+
+	wg.Wait()
+	log.Println("Reduce Completed")
+}
+
+func runReduce(remoteWorker *RemoteWorker, filePath string, reduceId int, wg *sync.WaitGroup) {
+	log.Println("Running", filePath)
+	args := &RunReduceArgs{reduceId, filePath}
+	err := remoteWorker.callRemoteWorker("Worker.RunReduce", args, new(struct{}))
+
+	if err != nil {
+		log.Println("RunReduce Failed. Error:", err)
+	}
+
+	wg.Done()
+	return
 }
 
 func (worker *RemoteWorker) callRemoteWorker(proc string, args interface{}, reply interface{}) error {

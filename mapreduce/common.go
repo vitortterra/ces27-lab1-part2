@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -23,8 +22,8 @@ type Task struct {
 	InputChan  chan []byte
 	OutputChan chan []KeyValue
 
-	InputURLChan  chan *url.URL
-	OutputURLChan chan *url.URL
+	InputFilePathChan chan string
+	OutputURLChan     chan string
 }
 
 type (
