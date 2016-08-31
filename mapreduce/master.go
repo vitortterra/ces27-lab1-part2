@@ -43,7 +43,6 @@ type ReduceOperation struct {
 func newMaster(address string) (master *Master) {
 	master = new(Master)
 	master.address = address
-	master.done = make(chan bool)
 	master.workers = make(map[int]*RemoteWorker, 0)
 	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.totalWorkers = 0
