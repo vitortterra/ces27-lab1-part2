@@ -29,8 +29,6 @@ func storeLocal(task *Task, idMapTask int, data []KeyValue) {
 		fileEncoder *json.Encoder
 	)
 
-	log.Println("Storing locally.\tMapId:", idMapTask, "\tLen:", len(data))
-
 	for r := 0; r < task.NumReduceJobs; r++ {
 		file, err = os.Create(filepath.Join(REDUCE_PATH, reduceName(idMapTask, r)))
 		if err != nil {

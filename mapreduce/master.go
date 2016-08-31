@@ -21,13 +21,24 @@ type Master struct {
 	workersMutex   sync.Mutex
 	idleWorkerChan chan *RemoteWorker
 
-	workers      []*RemoteWorker
+	workers      map[int]*RemoteWorker
 	totalWorkers int // Used to generate unique ids for new workers
 
 	// Operation
 	mapCounter    int
 	reduceCounter int
 	done          chan bool
+	mapDone       chan bool
+}
+
+type MapOperation struct {
+	id       int
+	filePath string
+}
+
+type ReduceOperation struct {
+	id       int
+	filePath string
 }
 
 // Construct a new Master struct
@@ -35,8 +46,8 @@ func newMaster(address string) (master *Master) {
 	master = new(Master)
 	master.address = address
 	master.done = make(chan bool)
-	master.workers = make([]*RemoteWorker)
-	master.idleWorkerChan = make(*RemoteWorker, IDLE_WORKER_BUFFER)
+	master.workers = make(map[int]*RemoteWorker, 0)
+	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.totalWorkers = 0
 	master.mapCounter = 0
 	master.reduceCounter = 0

@@ -1,7 +1,7 @@
 package mapreduce
 
 import (
-	"log"
+	"net/rpc"
 )
 
 type workerStatus string

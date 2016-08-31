@@ -62,7 +62,6 @@ func fanInFilePath(numFiles int, fileHostname string) chan string {
 		for i := 0; i < numFiles; i++ {
 			filePath = mapFileName(i)
 
-			log.Println("Fanning in file path", filePath)
 			inputChan <- filePath
 		}
 

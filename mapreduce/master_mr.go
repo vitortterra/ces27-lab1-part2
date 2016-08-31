@@ -4,7 +4,6 @@ import (
 	"log"
 	"path/filepath"
 	"sync"
-	"time"
 )
 
 // Schedules map operations on remote workers. This will run until InputFilePathChan
@@ -14,105 +13,105 @@ func (master *Master) scheduleMaps(task *Task) {
 		wg        sync.WaitGroup
 		filePath  string
 		worker    *RemoteWorker
-		available bool
+		operation *MapOperation
 	)
 
 	log.Println("Running map operations")
-	for filePath = range task.InputFilePathChan {
-		for {
-			worker, available = master.getIdleWorker()
 
-			if available {
-				wg.Add(1)
-				go worker.runMap(filePath, master.mapCounter, &wg)
-				break
-			} else {
-				time.Sleep(time.Duration(1) * time.Second)
-			}
-		}
+	for filePath = range task.InputFilePathChan {
+		operation = &MapOperation{master.mapCounter, filePath}
+		master.mapCounter++
+
+		worker = <-master.idleWorkerChan
+		wg.Add(1)
+		go master.runMap(worker, operation, &wg)
 	}
 
 	wg.Wait()
 	log.Println("Map Completed")
 }
 
-func (master *Master) getIdleWorker() (*RemoteWorker, bool) {
-	// Locks workers struct and searches for an idle worker.
-	master.workersMutex.Lock()
-	defer master.workersMutex.Unlock()
-	for _, worker := range master.workers {
-		if worker.status == WORKER_IDLE {
-			return worker, true
-		}
-	}
-
-	return nil, false
-}
-
 // runMap start a single map operation on a RemoteWorker and wait for it to return or fail.
-func (remoteWorker *RemoteWorker) runMap(filePath string, mapId int, wg *sync.WaitGroup) {
+func (master *Master) runMap(remoteWorker *RemoteWorker, operation *MapOperation, wg *sync.WaitGroup) {
 	var (
 		err  error
 		args *RunMapArgs
 	)
 
-	log.Printf("Running Map '%v' file '%v' on worker '%v'\n", mapId, filePath, remoteWorker.id)
+	log.Printf("Running Map '%v' file '%v' on worker '%v'\n", operation.id, operation.filePath, remoteWorker.id)
 
-	args = &RunMapArgs{mapId, filePath}
+	args = &RunMapArgs{operation.id, operation.filePath}
 	err = remoteWorker.callRemoteWorker("Worker.RunMap", args, new(struct{}))
 
 	if err != nil {
-		log.Println("Worker.RunMap Failed. Error:", err)
+		log.Panicln("Worker.RunMap Failed. Error:", err)
 	}
 
 	wg.Done()
+	master.idleWorkerChan <- remoteWorker
 }
 
 func (master *Master) scheduleReduces(task *Task) {
-	var wg sync.WaitGroup
+	var (
+		wg                 sync.WaitGroup
+		filePath           string
+		worker             *RemoteWorker
+		operation          *ReduceOperation
+		reduceFilePathChan chan string
+	)
 
 	log.Println("Running reduce operations")
-	for r := 0; r < task.NumReduceJobs; r++ {
-		filePath := filepath.Join(REDUCE_PATH, mergeReduceName(r))
 
-		for {
-			started := false
+	reduceFilePathChan = fanReduceFilePath(task.NumReduceJobs)
 
-			master.workersMutex.Lock()
-			for i := 1; i <= master.workerCounter; i++ {
-				if master.workers[i].status == WORKER_IDLE {
-					master.workers[i].status = WORKER_RUNNING
-					wg.Add(1)
-					go runReduce(master.workers[i], filePath, master.reduceCounter, &wg)
-					master.reduceCounter++
-					started = true
-					break
-				}
-			}
-			master.workersMutex.Unlock()
+	for filePath = range reduceFilePathChan {
+		operation = &ReduceOperation{master.reduceCounter, filePath}
+		master.reduceCounter++
 
-			if !started {
-				log.Println("No worker available.")
-				time.Sleep(time.Duration(3) * time.Second)
-			} else {
-				break
-			}
-		}
+		worker = <-master.idleWorkerChan
+		wg.Add(1)
+		go master.runReduce(worker, operation, &wg)
 	}
 
 	wg.Wait()
 	log.Println("Reduce Completed")
 }
 
-func runReduce(remoteWorker *RemoteWorker, filePath string, reduceId int, wg *sync.WaitGroup) {
-	log.Println("Running", filePath)
-	args := &RunReduceArgs{reduceId, filePath}
-	err := remoteWorker.callRemoteWorker("Worker.RunReduce", args, new(struct{}))
+func (master *Master) runReduce(remoteWorker *RemoteWorker, operation *ReduceOperation, wg *sync.WaitGroup) {
+	var (
+		err  error
+		args *RunReduceArgs
+	)
+
+	log.Printf("Running Reduce '%v' file '%v' on worker '%v'\n", operation.id, operation.filePath, remoteWorker.id)
+
+	args = &RunReduceArgs{operation.id, operation.filePath}
+	err = remoteWorker.callRemoteWorker("Worker.RunReduce", args, new(struct{}))
 
 	if err != nil {
-		log.Println("RunReduce Failed. Error:", err)
+		log.Panicln("Worker.RunReduce Failed. Error:", err)
 	}
 
 	wg.Done()
-	return
+	master.idleWorkerChan <- remoteWorker
+}
+
+func fanReduceFilePath(numReduceJobs int) chan string {
+	var (
+		outputChan chan string
+		filePath   string
+	)
+
+	outputChan = make(chan string)
+
+	go func() {
+		for i := 0; i < numReduceJobs; i++ {
+			filePath = filepath.Join(REDUCE_PATH, mergeReduceName(i))
+
+			outputChan <- filePath
+		}
+
+		close(outputChan)
+	}()
+	return outputChan
 }

@@ -14,60 +14,59 @@ const (
 )
 
 func (worker *Worker) RunMap(args *RunMapArgs, _ *struct{}) error {
-	log.Printf("Running map: id: %v, path: %v\n", args.MapId, args.FilePath)
+	var (
+		err       error
+		buffer    []byte
+		mapResult []KeyValue
+	)
 
-	go func() {
-		var (
-			err       error
-			buffer    []byte
-			mapResult []KeyValue
-		)
+	log.Printf("Running map id: %v, path: %v\n", args.MapId, args.FilePath)
 
-		if buffer, err = ioutil.ReadFile(args.FilePath); err != nil {
-			log.Fatal(err)
-		}
+	if buffer, err = ioutil.ReadFile(args.FilePath); err != nil {
+		log.Fatal(err)
+	}
 
-		mapResult = worker.task.Map(buffer)
-		storeLocal(worker.task, args.MapId, mapResult)
-		args := &MapDoneArgs{worker.id, args.MapId}
-		worker.callMaster("Master.MapDone", args, new(struct{}))
-	}()
+	mapResult = worker.task.Map(buffer)
+	storeLocal(worker.task, args.MapId, mapResult)
 	return nil
 }
 
 func (worker *Worker) RunReduce(args *RunReduceArgs, _ *struct{}) error {
-	log.Printf("Running reduce: id: %v, path: %v\n", args.ReduceId, args.FilePath)
+	log.Printf("Running reduce id: %v, path: %v\n", args.ReduceId, args.FilePath)
 
-	go func() {
-		var (
-			err          error
-			reduceResult []KeyValue
-			file         *os.File
-			fileEncoder  *json.Encoder
-		)
+	var (
+		err          error
+		reduceResult []KeyValue
+		file         *os.File
+		fileEncoder  *json.Encoder
+	)
 
-		data := loadLocal(args.ReduceId)
+	data := loadLocal(args.ReduceId)
 
-		reduceResult = worker.task.Reduce(data)
+	reduceResult = worker.task.Reduce(data)
 
-		if file, err = os.Create(resultFileName(args.ReduceId)); err != nil {
-			log.Fatal(err)
-		}
+	if file, err = os.Create(resultFileName(args.ReduceId)); err != nil {
+		log.Fatal(err)
+	}
 
-		fileEncoder = json.NewEncoder(file)
+	fileEncoder = json.NewEncoder(file)
 
-		for _, value := range reduceResult {
-			fileEncoder.Encode(value)
-		}
+	for _, value := range reduceResult {
+		fileEncoder.Encode(value)
+	}
 
-		file.Close()
-
-		args := &ReduceDoneArgs{worker.id, args.ReduceId}
-		worker.callMaster("Master.ReduceDone", args, new(struct{}))
-	}()
+	file.Close()
 	return nil
 }
 
 func resultFileName(id int) string {
 	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
+}
+
+func (worker *Worker) Done(_ *struct{}, _ *struct{}) error {
+	log.Println("Done.")
+	defer func() {
+		close(worker.done)
+	}()
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"net/rpc"
-	"time"
 )
 
 type Worker struct {
@@ -18,6 +17,7 @@ type Worker struct {
 
 	// Operation
 	task *Task
+	done chan bool
 }
 
 // Call RPC Register on Master to notify that this worker is ready
@@ -44,32 +44,28 @@ func (worker *Worker) register() error {
 	return err
 }
 
-// heartMonitor will repeatedly send information about this worker to Master.
-func (worker *Worker) heartMonitor(hb int) {
+// acceptMultipleConnections will handle the connections from multiple workers.
+func (worker *Worker) acceptMultipleConnections() error {
 	var (
-		err   error
-		args  *HeartBeatArgs
-		reply *HeartBeatReply
+		err     error
+		newConn net.Conn
 	)
 
+	log.Printf("Accepting connections on %v\n", worker.listener.Addr())
+
 	for {
-		log.Println("Sending HeartBeat")
+		newConn, err = worker.listener.Accept()
 
-		args = &HeartBeatArgs{worker.id}
-		reply = new(HeartBeatReply)
-
-		err = worker.callMaster("Master.HeartBeat", args, &reply)
-
-		if err != nil {
-			log.Println("HeartBeat failed. Error:", err)
+		if err == nil {
+			go worker.handleConnection(&newConn)
+		} else {
+			log.Println("Failed to accept connection. Error: ", err)
+			break
 		}
-
-		if !reply.Ok {
-			log.Fatal("Not recognized by Master.")
-		}
-
-		time.Sleep(time.Duration(hb) * time.Second)
 	}
+
+	log.Println("Stopped accepting connections.")
+	return nil
 }
 
 // Handle a single connection until it's done, then closes it.

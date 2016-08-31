@@ -83,6 +83,16 @@ func RunMaster(task *Task, hostname string) {
 	mergeLocal(task, master.mapCounter)
 
 	master.scheduleReduces(task)
+
+	log.Println("Closing Remote Workers.")
+	for _, worker := range master.workers {
+		err = worker.callRemoteWorker("Worker.Done", new(struct{}), new(struct{}))
+		if err != nil {
+			log.Panicln("Failed to close Remote Worker. Error:", err)
+		}
+	}
+
+	log.Println("Done.")
 	return
 }
 
@@ -102,6 +112,7 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 	worker.hostname = hostname
 	worker.masterHostname = masterHostname
 	worker.task = task
+	worker.done = make(chan bool)
 
 	rpcs = rpc.NewServer()
 	rpcs.Register(worker)
@@ -123,14 +134,7 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 		log.Panic("Register RPC failed. Error:", err)
 	}
 
-	go worker.heartMonitor(5)
+	go worker.acceptMultipleConnections()
 
-	for {
-		conn, err := worker.listener.Accept()
-		if err == nil {
-			go worker.handleConnection(&conn)
-		} else {
-			break
-		}
-	}
+	<-worker.done
 }
