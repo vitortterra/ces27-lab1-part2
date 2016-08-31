@@ -13,6 +13,8 @@ const (
 	RESULT_PATH = "result/"
 )
 
+// RPC - RunMap
+// Run the map operation defined in the task and return when it's done.
 func (worker *Worker) RunMap(args *RunMapArgs, _ *struct{}) error {
 	var (
 		err       error
@@ -35,6 +37,8 @@ func (worker *Worker) RunMap(args *RunMapArgs, _ *struct{}) error {
 	return nil
 }
 
+// RPC - RunMap
+// Run the reduce operation defined in the task and return when it's done.
 func (worker *Worker) RunReduce(args *RunReduceArgs, _ *struct{}) error {
 	log.Printf("Running reduce id: %v, path: %v\n", args.ReduceId, args.FilePath)
 
@@ -67,14 +71,17 @@ func (worker *Worker) RunReduce(args *RunReduceArgs, _ *struct{}) error {
 	return nil
 }
 
-func resultFileName(id int) string {
-	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
-}
-
+// RPC - Done
+// Will be called by Master when the task is done.
 func (worker *Worker) Done(_ *struct{}, _ *struct{}) error {
 	log.Println("Done.")
 	defer func() {
 		close(worker.done)
 	}()
 	return nil
+}
+
+// Support function to generate the name of result files
+func resultFileName(id int) string {
+	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
 }

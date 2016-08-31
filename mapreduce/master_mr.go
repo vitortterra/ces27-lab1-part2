@@ -8,7 +8,7 @@ import (
 
 // Schedules map operations on remote workers. This will run until InputFilePathChan
 func (master *Master) scheduleMaps(task *Task) {
-// is closed. If there is no worker available, it'll block.
+	// is closed. If there is no worker available, it'll block.
 	var (
 		wg        sync.WaitGroup
 		filePath  string
@@ -99,6 +99,9 @@ func (master *Master) runReduce(remoteWorker *RemoteWorker, operation *ReduceOpe
 	master.idleWorkerChan <- remoteWorker
 }
 
+// FanIn is a pattern that will return a channel in which the goroutines generated here will keep
+// writing until the loop is done.
+// This is used to generate the name of all the reduce files.
 func fanReduceFilePath(numReduceJobs int) chan string {
 	var (
 		outputChan chan string

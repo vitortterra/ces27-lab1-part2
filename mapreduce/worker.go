@@ -25,8 +25,7 @@ type Worker struct {
 	during      bool
 }
 
-// Call RPC Register on Master to notify that this worker is ready
-// to receive operations.
+// Call RPC Register on Master to notify that this worker is ready to receive operations.
 func (worker *Worker) register() error {
 	var (
 		err   error

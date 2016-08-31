@@ -17,6 +17,8 @@ type RemoteWorker struct {
 	status   workerStatus
 }
 
+// Call a RemoteWork with the procedure specified in parameters. It will also handle connecting
+// to the server and closing it afterwards.
 func (worker *RemoteWorker) callRemoteWorker(proc string, args interface{}, reply interface{}) error {
 	var (
 		err    error
