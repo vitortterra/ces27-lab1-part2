@@ -38,8 +38,10 @@ func (worker *Worker) register() error {
 
 	err = worker.callMaster("Master.Register", args, reply)
 
-	worker.id = reply.WorkerId
-	log.Printf("Registered. WorkerId: %v\n", worker.id)
+	if err == nil {
+		worker.id = reply.WorkerId
+		log.Printf("Registered. WorkerId: %v\n", worker.id)
+	}
 
 	return err
 }

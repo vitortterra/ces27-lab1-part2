@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"time"
 )
 
 // RunSequential will ensure that map and reduce function runs in
@@ -98,10 +99,11 @@ func RunMaster(task *Task, hostname string) {
 
 func RunWorker(task *Task, hostname string, masterHostname string) {
 	var (
-		err      error
-		worker   *Worker
-		rpcs     *rpc.Server
-		listener net.Listener
+		err           error
+		worker        *Worker
+		rpcs          *rpc.Server
+		listener      net.Listener
+		retryDuration time.Duration
 	)
 
 	log.Println("Running Worker on", hostname)
@@ -128,10 +130,16 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 	worker.listener = listener
 	defer worker.listener.Close()
 
-	err = worker.register()
+	retryDuration = time.Duration(2) * time.Second
+	for {
+		err = worker.register()
 
-	if err != nil {
-		log.Panic("Register RPC failed. Error:", err)
+		if err == nil {
+			break
+		}
+
+		log.Printf("Registration failed. Retrying in %v seconds...\n", retryDuration)
+		time.Sleep(retryDuration)
 	}
 
 	go worker.acceptMultipleConnections()
