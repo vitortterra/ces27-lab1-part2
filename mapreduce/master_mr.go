@@ -7,8 +7,8 @@ import (
 )
 
 // Schedules map operations on remote workers. This will run until InputFilePathChan
-// is closed. If there is no worker available, it'll sleep and retry.
 func (master *Master) scheduleMaps(task *Task) {
+// is closed. If there is no worker available, it'll block.
 	var (
 		wg        sync.WaitGroup
 		filePath  string
@@ -51,6 +51,8 @@ func (master *Master) runMap(remoteWorker *RemoteWorker, operation *MapOperation
 	master.idleWorkerChan <- remoteWorker
 }
 
+// Schedules reduce operations on remote workers. This will run until reduceFilePathChan
+// is closed. If there is no worker available, it'll block.
 func (master *Master) scheduleReduces(task *Task) {
 	var (
 		wg                 sync.WaitGroup
@@ -77,6 +79,7 @@ func (master *Master) scheduleReduces(task *Task) {
 	log.Println("Reduce Completed")
 }
 
+// runMap start a single map operation on a RemoteWorker and wait for it to return or fail.
 func (master *Master) runReduce(remoteWorker *RemoteWorker, operation *ReduceOperation, wg *sync.WaitGroup) {
 	var (
 		err  error

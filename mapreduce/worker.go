@@ -108,7 +108,13 @@ func (worker *Worker) callMaster(proc string, args interface{}, reply interface{
 	return nil
 }
 
+// shouldFail will keep track of executed operations and return true when nOps operations
+// have been executed (before or during operation)
 func (worker *Worker) shouldFail(during bool) bool {
+	if worker.nOps == 0 {
+		return false
+	}
+
 	if !during {
 		worker.taskCounter++
 	}

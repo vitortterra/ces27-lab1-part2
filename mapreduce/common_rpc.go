@@ -1,3 +1,5 @@
+// common_rpc.go defined all the parameters used in RPC between
+// master and workers
 package mapreduce
 
 type RegisterArgs struct {

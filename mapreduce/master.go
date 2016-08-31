@@ -8,27 +8,25 @@ import (
 )
 
 const (
-	IDLE_WORKER_BUFFER = 10
+	IDLE_WORKER_BUFFER = 100
 )
 
 type Master struct {
-	// Network data
+	// Network
 	address   string
 	rpcServer *rpc.Server
 	listener  net.Listener
 
 	// Workers handling
-	workersMutex   sync.Mutex
 	idleWorkerChan chan *RemoteWorker
 
+	workersMutex sync.Mutex
 	workers      map[int]*RemoteWorker
 	totalWorkers int // Used to generate unique ids for new workers
 
 	// Operation
 	mapCounter    int
 	reduceCounter int
-	done          chan bool
-	mapDone       chan bool
 }
 
 type MapOperation struct {

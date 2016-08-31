@@ -12,10 +12,12 @@ const (
 	REDUCE_PATH = "reduce/"
 )
 
+// Returns the name of files created after merge
 func mergeReduceName(idReduce int) string {
 	return fmt.Sprintf("reduce-%v", idReduce)
 }
 
+// Returns the name of files created after map
 func reduceName(idMap int, idReduce int) string {
 	return fmt.Sprintf("reduce-%v-%v", idMap, idReduce)
 }

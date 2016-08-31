@@ -1,10 +1,13 @@
 package mapreduce
 
+// KeyValue is the type used to hold elements of maps and reduces results.
 type KeyValue struct {
 	Key   string
 	Value string
 }
 
+// Task is the exposed struct of the Framework that the calling code should initialize
+// with the specific implementation of the operation.
 type Task struct {
 	// MapReduce functions
 	Map     MapFunc

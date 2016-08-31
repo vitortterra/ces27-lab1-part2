@@ -43,6 +43,8 @@ func RunSequential(task *Task) {
 }
 
 // RunMaster will start a master node on the map reduce operations.
+// In the distributed model, a Master should serve multiple workers and distribute
+// the operations to be executed in order to complete the task.
 // 	- task: the Task object that contains the mapreduce operation.
 //  - hostname: the tcp/ip address on which it will listen for connections.
 func RunMaster(task *Task, hostname string) {
@@ -81,6 +83,7 @@ func RunMaster(task *Task, hostname string) {
 
 	master.scheduleMaps(task)
 
+	// Merge the result of multiple map operation with the same reduceId into a single file
 	mergeLocal(task, master.mapCounter)
 
 	master.scheduleReduces(task)
@@ -102,7 +105,6 @@ func RunMaster(task *Task, hostname string) {
 // Induced failures:
 // -> nOps = number of operations to run before failure (0 = no failure)
 // -> during = if failure should occur during next task
-
 func RunWorker(task *Task, hostname string, masterHostname string, nOps int, during bool) {
 	var (
 		err           error
