@@ -27,7 +27,17 @@ func (master *Master) scheduleMaps(task *Task) {
 		go master.runMap(worker, operation, &wg)
 	}
 
+	go func() {
+		for operation := range master.retryMapOperation {
+			worker = <-master.idleWorkerChan
+			log.Printf("Retrying map operation %v\n", operation.id)
+			go master.runMap(worker, operation, &wg)
+		}
+	}()
+
 	wg.Wait()
+	close(master.retryMapOperation)
+
 	log.Println("Map Completed")
 }
 
@@ -44,11 +54,13 @@ func (master *Master) runMap(remoteWorker *RemoteWorker, operation *MapOperation
 	err = remoteWorker.callRemoteWorker("Worker.RunMap", args, new(struct{}))
 
 	if err != nil {
-		log.Panicln("Worker.RunMap Failed. Error:", err)
+		log.Printf("Map %v Failed. Error: %v\n", operation.id, err)
+		master.retryMapOperation <- operation
+		master.failedWorkerChan <- remoteWorker
+	} else {
+		wg.Done()
+		master.idleWorkerChan <- remoteWorker
 	}
-
-	wg.Done()
-	master.idleWorkerChan <- remoteWorker
 }
 
 // Schedules reduce operations on remote workers. This will run until reduceFilePathChan
@@ -92,7 +104,7 @@ func (master *Master) runReduce(remoteWorker *RemoteWorker, operation *ReduceOpe
 	err = remoteWorker.callRemoteWorker("Worker.RunReduce", args, new(struct{}))
 
 	if err != nil {
-		log.Panicln("Worker.RunReduce Failed. Error:", err)
+		log.Println("Worker.RunReduce Failed. Error:", err)
 	}
 
 	wg.Done()

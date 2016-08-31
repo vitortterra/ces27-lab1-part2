@@ -81,6 +81,8 @@ func RunMaster(task *Task, hostname string) {
 
 	go master.acceptMultipleConnections()
 
+	go master.handleFailingWorkers()
+
 	master.scheduleMaps(task)
 
 	// Merge the result of multiple map operation with the same reduceId into a single file

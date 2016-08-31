@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	IDLE_WORKER_BUFFER = 100
+	IDLE_WORKER_BUFFER     = 100
+	RETRY_OPERATION_BUFFER = 100
 )
 
 type Master struct {
@@ -18,15 +19,20 @@ type Master struct {
 	listener  net.Listener
 
 	// Workers handling
-	idleWorkerChan chan *RemoteWorker
-
 	workersMutex sync.Mutex
 	workers      map[int]*RemoteWorker
 	totalWorkers int // Used to generate unique ids for new workers
 
+	idleWorkerChan   chan *RemoteWorker
+	failedWorkerChan chan *RemoteWorker
+
 	// Operation
 	mapCounter    int
+	mapCompleted  int
 	reduceCounter int
+
+	// Fault Tolerance
+	retryMapOperation chan *MapOperation
 }
 
 type MapOperation struct {
@@ -45,14 +51,16 @@ func newMaster(address string) (master *Master) {
 	master.address = address
 	master.workers = make(map[int]*RemoteWorker, 0)
 	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
+	master.failedWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.totalWorkers = 0
 	master.mapCounter = 0
 	master.reduceCounter = 0
+	master.retryMapOperation = make(chan *MapOperation, RETRY_OPERATION_BUFFER)
 	return
 }
 
 // acceptMultipleConnections will handle the connections from multiple workers.
-func (master *Master) acceptMultipleConnections() error {
+func (master *Master) acceptMultipleConnections() {
 	var (
 		err     error
 		newConn net.Conn
@@ -72,7 +80,20 @@ func (master *Master) acceptMultipleConnections() error {
 	}
 
 	log.Println("Stopped accepting connections.")
-	return nil
+}
+
+// checkFailingWorkers will check workers that fails during an operation.
+func (master *Master) handleFailingWorkers() {
+	var (
+		worker *RemoteWorker
+	)
+
+	for worker = range master.failedWorkerChan {
+		log.Printf("Removing worker %v from master list.", worker.id)
+		master.workersMutex.Lock()
+		delete(master.workers, worker.id)
+		master.workersMutex.Unlock()
+	}
 }
 
 // Handle a single connection until it's done, then closes it.
