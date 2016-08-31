@@ -18,6 +18,11 @@ type Worker struct {
 	// Operation
 	task *Task
 	done chan bool
+
+	// Induced failures
+	taskCounter int
+	nOps        int
+	during      bool
 }
 
 // Call RPC Register on Master to notify that this worker is ready
@@ -58,6 +63,10 @@ func (worker *Worker) acceptMultipleConnections() error {
 	for {
 		newConn, err = worker.listener.Accept()
 
+		if worker.shouldFail(false) {
+			panic("Induced failure.")
+		}
+
 		if err == nil {
 			go worker.handleConnection(&newConn)
 		} else {
@@ -97,4 +106,18 @@ func (worker *Worker) callMaster(proc string, args interface{}, reply interface{
 	}
 
 	return nil
+}
+
+func (worker *Worker) shouldFail(during bool) bool {
+	if !during {
+		worker.taskCounter++
+	}
+
+	if worker.taskCounter == worker.nOps {
+		if during == worker.during {
+			return true
+		}
+	}
+
+	return false
 }

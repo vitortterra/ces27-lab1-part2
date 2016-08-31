@@ -22,6 +22,10 @@ var (
 	addr   = flag.String("addr", "localhost", "IP address to listen on")
 	port   = flag.Int("port", 5000, "TCP port to listen on")
 	master = flag.String("master", "localhost:5000", "Master address")
+
+	// Induced failure on Worker
+	nOps   = flag.Int("fail", 0, "Number of operations to run before failure")
+	during = flag.Bool("during", false, "Fail during next task")
 )
 
 // Code Entry Point
@@ -111,9 +115,15 @@ func main() {
 			log.Println("Port:", *port)
 			log.Println("Master:", *master)
 
+			if *nOps > 0 {
+				log.Println("Induced failure")
+				log.Printf("After %v operations\n", *nOps)
+				log.Println("Fail during operation:", *during)
+			}
+
 			hostname = *addr + ":" + strconv.Itoa(*port)
 
-			mapreduce.RunWorker(task, hostname, *master)
+			mapreduce.RunWorker(task, hostname, *master, *nOps, *during)
 		}
 	}
 }

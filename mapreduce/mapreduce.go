@@ -97,7 +97,13 @@ func RunMaster(task *Task, hostname string) {
 	return
 }
 
-func RunWorker(task *Task, hostname string, masterHostname string) {
+// RunWorker will run a instance of a worker. It'll initialize and then try to register with
+// master.
+// Induced failures:
+// -> nOps = number of operations to run before failure (0 = no failure)
+// -> during = if failure should occur during next task
+
+func RunWorker(task *Task, hostname string, masterHostname string, nOps int, during bool) {
 	var (
 		err           error
 		worker        *Worker
@@ -115,6 +121,13 @@ func RunWorker(task *Task, hostname string, masterHostname string) {
 	worker.masterHostname = masterHostname
 	worker.task = task
 	worker.done = make(chan bool)
+
+	// Should induce a failure
+	if nOps > 0 {
+		worker.taskCounter = 0
+		worker.nOps = nOps
+		worker.during = during
+	}
 
 	rpcs = rpc.NewServer()
 	rpcs.Register(worker)
