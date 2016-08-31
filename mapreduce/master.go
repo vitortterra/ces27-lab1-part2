@@ -32,15 +32,11 @@ type Master struct {
 	reduceCounter int
 
 	// Fault Tolerance
-	retryMapOperation chan *MapOperation
+	retryOperation chan *Operation
 }
 
-type MapOperation struct {
-	id       int
-	filePath string
-}
-
-type ReduceOperation struct {
+type Operation struct {
+	proc     string
 	id       int
 	filePath string
 }
@@ -55,7 +51,6 @@ func newMaster(address string) (master *Master) {
 	master.totalWorkers = 0
 	master.mapCounter = 0
 	master.reduceCounter = 0
-	master.retryMapOperation = make(chan *MapOperation, RETRY_OPERATION_BUFFER)
 	return
 }
 

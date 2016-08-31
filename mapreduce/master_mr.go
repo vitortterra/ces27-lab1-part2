@@ -13,54 +13,34 @@ func (master *Master) scheduleMaps(task *Task) {
 		wg        sync.WaitGroup
 		filePath  string
 		worker    *RemoteWorker
-		operation *MapOperation
+		operation *Operation
 	)
 
 	log.Println("Running map operations")
 
+	master.retryOperation = make(chan *Operation, RETRY_OPERATION_BUFFER)
+
 	for filePath = range task.InputFilePathChan {
-		operation = &MapOperation{master.mapCounter, filePath}
+		operation = &Operation{"Worker.RunMap", master.mapCounter, filePath}
 		master.mapCounter++
 
 		worker = <-master.idleWorkerChan
 		wg.Add(1)
-		go master.runMap(worker, operation, &wg)
+		go master.runOperation(worker, operation, &wg)
 	}
 
 	go func() {
-		for operation := range master.retryMapOperation {
+		for operation := range master.retryOperation {
 			worker = <-master.idleWorkerChan
 			log.Printf("Retrying map operation %v\n", operation.id)
-			go master.runMap(worker, operation, &wg)
+			go master.runOperation(worker, operation, &wg)
 		}
 	}()
 
 	wg.Wait()
-	close(master.retryMapOperation)
+	close(master.retryOperation)
 
 	log.Println("Map Completed")
-}
-
-// runMap start a single map operation on a RemoteWorker and wait for it to return or fail.
-func (master *Master) runMap(remoteWorker *RemoteWorker, operation *MapOperation, wg *sync.WaitGroup) {
-	var (
-		err  error
-		args *RunMapArgs
-	)
-
-	log.Printf("Running Map '%v' file '%v' on worker '%v'\n", operation.id, operation.filePath, remoteWorker.id)
-
-	args = &RunMapArgs{operation.id, operation.filePath}
-	err = remoteWorker.callRemoteWorker("Worker.RunMap", args, new(struct{}))
-
-	if err != nil {
-		log.Printf("Map %v Failed. Error: %v\n", operation.id, err)
-		master.retryMapOperation <- operation
-		master.failedWorkerChan <- remoteWorker
-	} else {
-		wg.Done()
-		master.idleWorkerChan <- remoteWorker
-	}
 }
 
 // Schedules reduce operations on remote workers. This will run until reduceFilePathChan
@@ -70,45 +50,58 @@ func (master *Master) scheduleReduces(task *Task) {
 		wg                 sync.WaitGroup
 		filePath           string
 		worker             *RemoteWorker
-		operation          *ReduceOperation
+		operation          *Operation
 		reduceFilePathChan chan string
 	)
 
 	log.Println("Running reduce operations")
 
 	reduceFilePathChan = fanReduceFilePath(task.NumReduceJobs)
+	master.retryOperation = make(chan *Operation, RETRY_OPERATION_BUFFER)
 
 	for filePath = range reduceFilePathChan {
-		operation = &ReduceOperation{master.reduceCounter, filePath}
+		operation = &Operation{"Worker.RunReduce", master.reduceCounter, filePath}
 		master.reduceCounter++
 
 		worker = <-master.idleWorkerChan
 		wg.Add(1)
-		go master.runReduce(worker, operation, &wg)
+		go master.runOperation(worker, operation, &wg)
 	}
 
+	go func() {
+		for operation := range master.retryOperation {
+			worker = <-master.idleWorkerChan
+			log.Printf("Retrying reduce operation %v\n", operation.id)
+			go master.runOperation(worker, operation, &wg)
+		}
+	}()
+
 	wg.Wait()
+	close(master.retryOperation)
+
 	log.Println("Reduce Completed")
 }
 
-// runMap start a single map operation on a RemoteWorker and wait for it to return or fail.
-func (master *Master) runReduce(remoteWorker *RemoteWorker, operation *ReduceOperation, wg *sync.WaitGroup) {
+// runOperation start a single operation on a RemoteWorker and wait for it to return or fail.
+func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operation, wg *sync.WaitGroup) {
 	var (
 		err  error
-		args *RunReduceArgs
+		args *RunArgs
 	)
 
-	log.Printf("Running Reduce '%v' file '%v' on worker '%v'\n", operation.id, operation.filePath, remoteWorker.id)
+	log.Printf("Running %v '%v' file '%v' on worker '%v'\n", operation.proc, operation.id, operation.filePath, remoteWorker.id)
 
-	args = &RunReduceArgs{operation.id, operation.filePath}
-	err = remoteWorker.callRemoteWorker("Worker.RunReduce", args, new(struct{}))
+	args = &RunArgs{operation.id, operation.filePath}
+	err = remoteWorker.callRemoteWorker(operation.proc, args, new(struct{}))
 
 	if err != nil {
-		log.Println("Worker.RunReduce Failed. Error:", err)
+		log.Printf("Operation %v '%v' Failed. Error: %v\n", operation.proc, operation.id, err)
+		master.retryOperation <- operation
+		master.failedWorkerChan <- remoteWorker
+	} else {
+		wg.Done()
+		master.idleWorkerChan <- remoteWorker
 	}
-
-	wg.Done()
-	master.idleWorkerChan <- remoteWorker
 }
 
 // FanIn is a pattern that will return a channel in which the goroutines generated here will keep
