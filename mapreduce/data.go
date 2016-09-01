@@ -119,6 +119,25 @@ func loadLocal(idReduce int) (data []KeyValue) {
 	return data
 }
 
+func RemoveContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // FanIn is a pattern that will return a channel in which the goroutines generated here will keep
 // writing until the loop is done.
 // This is used to generate the name of all the reduce files.

@@ -112,9 +112,73 @@ func fanOutData() (chan []mapreduce.KeyValue, chan bool) {
 // Reads input file and split it into files smaller than chunkSize.
 // CUTCUTCUTCUTCUT!
 func splitData(fileName string, chunkSize int) (numMapFiles int, err error) {
-	/////////////////////////
-	// COPY YOUR CODE HERE //
-	/////////////////////////
+	var (
+		file         *os.File
+		tempFile     *os.File
+		chunkBuffer  []byte
+		paddedBuffer []byte
+		bytesRead    int
+		pad          int
+	)
+
+	numMapFiles = 0
+
+	if file, err = os.Open(fileName); err != nil {
+		return numMapFiles, err
+	}
+	defer file.Close()
+
+	chunkBuffer = make([]byte, chunkSize)
+	paddedBuffer = chunkBuffer
+
+	pad = 0
+	for {
+		if bytesRead, err = file.Read(paddedBuffer); err != nil {
+			if err != io.EOF {
+				return numMapFiles, err
+			}
+		}
+
+		paddedBuffer = chunkBuffer
+		bytesRead += pad
+
+		if bytesRead > 0 {
+			if bytesRead == chunkSize {
+				pad = 0
+				for r := rune(paddedBuffer[bytesRead-1-pad]); unicode.IsLetter(r) || unicode.IsNumber(r); r = rune(paddedBuffer[bytesRead-1-pad]) {
+					pad++
+
+					if pad == bytesRead {
+						pad = 0
+						break
+					}
+				}
+			} else {
+				pad = chunkSize - bytesRead
+			}
+			paddedBuffer = chunkBuffer[:chunkSize-pad]
+
+			if tempFile, err = os.Create(mapFileName(numMapFiles)); err != nil {
+				return numMapFiles, err
+			}
+			numMapFiles++
+			if _, err = tempFile.Write(paddedBuffer); err != nil {
+				tempFile.Close()
+				return numMapFiles, err
+			}
+
+			tempFile.Close()
+
+			_ = copy(chunkBuffer, chunkBuffer[chunkSize-pad:])
+			paddedBuffer = chunkBuffer[pad:]
+		}
+
+		if bytesRead < chunkSize {
+			break
+		}
+	}
+
+	return numMapFiles, nil
 }
 
 func mapFileName(id int) string {
@@ -123,4 +187,23 @@ func mapFileName(id int) string {
 
 func resultFileName(id int) string {
 	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
+}
+
+func RemoveContents(dir string) error {
+	d, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		err = os.RemoveAll(filepath.Join(dir, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

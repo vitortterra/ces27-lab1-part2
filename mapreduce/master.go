@@ -34,9 +34,6 @@ type Master struct {
 	// ADD EXTRA PROPERTIES HERE //
 	///////////////////////////////
 	// Fault Tolerance
-
-	// Maybe you want to use something like?
-	// 	retryOperation chan *Operation
 }
 
 type Operation struct {
@@ -81,16 +78,23 @@ func (master *Master) acceptMultipleConnections() {
 	log.Println("Stopped accepting connections.")
 }
 
+// handleFailingWorkers will handle workers that fails during an operation.
+func (master *Master) handleFailingWorkers() {
+	var (
+		worker *RemoteWorker
+	)
+
+	for worker = range master.failedWorkerChan {
+		log.Printf("Removing worker %v from master list.", worker.id)
+		master.workersMutex.Lock()
+		delete(master.workers, worker.id)
+		master.workersMutex.Unlock()
+	}
+}
+
 // Handle a single connection until it's done, then closes it.
 func (master *Master) handleConnection(conn *net.Conn) error {
 	master.rpcServer.ServeConn(*conn)
 	(*conn).Close()
 	return nil
-}
-
-// checkFailingWorkers will check workers that fails during an operation.
-func (master *Master) handleFailingWorkers() {
-	/////////////////////////
-	// YOUR CODE GOES HERE //
-	/////////////////////////
 }

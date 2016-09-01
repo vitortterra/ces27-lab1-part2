@@ -60,6 +60,7 @@ func RunMaster(task *Task, hostname string) {
 
 	// Create a reduce directory to store intemediate reduce files.
 	_ = os.Mkdir(REDUCE_PATH, os.ModePerm)
+	_ = RemoveContents(REDUCE_PATH)
 
 	master = newMaster(hostname)
 

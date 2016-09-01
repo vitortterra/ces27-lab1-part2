@@ -61,6 +61,10 @@ func main() {
 			fanIn     chan []byte
 			fanOut    chan []mapreduce.KeyValue
 		)
+
+		_ = RemoveContents(MAP_PATH)
+		_ = RemoveContents(RESULT_PATH)
+
 		// Splits data into chunks with size up to chunkSize
 		if numFiles, err = splitData(*file, *chunkSize); err != nil {
 			log.Fatal(err)
@@ -94,6 +98,9 @@ func main() {
 			log.Println("Port:", *port)
 			log.Println("File:", *file)
 			log.Println("Chunk Size:", *chunkSize)
+
+			_ = RemoveContents(MAP_PATH)
+			_ = RemoveContents(RESULT_PATH)
 
 			hostname = *addr + ":" + strconv.Itoa(*port)
 
