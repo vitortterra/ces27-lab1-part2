@@ -267,14 +267,14 @@ Num ambiente real, existem várias possibilidades, como por exemplo informar ao 
 
 No nosso caso, não vamos tentar retomar o processo, mas apenas registrar que ele não está mais disponível.
 
-**Útil:**
+**Útil:**  
 A função deve monitorar o canal master.failedWorkerChan. Para isso, é interessante observar o uso da operação **range** em estruturas do tipo channel. https://gobyexample.com/range-over-channels
 
 Para remover elementos em estruturas do tipo map, utilizar a operação **delete**. https://gobyexample.com/maps
 
 Por último, para garantir a sincronia da estrutura, utilizar o mutex master.workersMutex para proteger o acesso à estrutura master.workers. https://gobyexample.com/mutexes
 
-Resultado:
+**Resultado:**  
 
 Removendo worker da lista
 > Running Worker.RunMap (ID: '2' File: 'map\map-2' Worker: '0')  
@@ -291,7 +291,9 @@ Mesmo com falhas, os workers são finalizados corretamente:
 
 No código acima, fizemos com que o nosso código terminasse de forma elegante mesmo que workers falhassem. Entretanto, a operação onde ocorreu a falha nunca foi realizada, e por conta disso, o nosso MapReduce está incorreto. Para observar isto, basta tentar localizar os arquivos resultantes da operação que falhou (na pasta *reduce/* em caso de falha de uma operação map e *result/* em caso de reduce).
 
-No código abaixo:
+![0 byte files](doc/0-byte-files.png)
+
+Para começar a entender, no código abaixo:
 
 ```go
 master_scheduler.go
