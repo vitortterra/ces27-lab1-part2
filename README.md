@@ -8,7 +8,7 @@ Para saber mais sobre a entrega do trabalho, acessar: [Entrega](ENTREGA.md)
 
 Nesta segunda parte da prática, temos pronto um processo de MapReduce que já opera de forma distribuída.
 
-Da prática anterior, devemos ter prontas as funções de Map, Reduce e Split. Copiar as duas primeiras no arquivo **wordcount/wordcount.go** e a última no arquivo **wordcount/data.go**.
+O código já possui funções map, reduce e split, mas caso queira testar a sua implementação referente à primeira parte, basta sobrescrever o código dado.
 
 ### Executando o Código
 Para executar o código, precisamos executar multiplos processos. O primeiro deles são os clientes. Note que o valor de -port deve ser alterado para cada cliente. Neste lab usaremos a port 5000 para o Master e 5001+ para os Workers.
