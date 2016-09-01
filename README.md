@@ -216,7 +216,7 @@ Já na linha master.schedule(...), fazemos a execuçao na goroutine atual.
 
 Dessa forma essas operações estão acontecendo concorrentemente, e o master.idleWorkerChan é o canal de comunicação entre elas. Quando a operação Register escreve no canal, a operação schedule é informado de que um novo Worker está disponível e continua a execução.
 
-Por último, para entender a pausa do processo, vamos olhar o código a seguir:
+Por último, para entender o Deadlock, vamos olhar o código a seguir:
 ```go
 func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operation, wg *sync.WaitGroup) {
     (...)
@@ -239,6 +239,15 @@ Quando um worker completa uma operação corretamente, ele cai no else acima e o
 **Ninguém!!!**
 
 É por isso que a execução trava. O scheduler vai esperar infinitamente por um worker (que falhou). Para concluir a execução, basta executar um segundo worker e as operações vão ser retomadas.
+
+No fim da tarefa de MapReduce, o Master informa a todos os Workers que a tarefa foi finalizada.
+
+Neste caso recebemos o seguinte erro:
+> Closing Remote Workers.  
+> Failed to close Remote Worker. Error: dial tcp [::1]:5003: connectex: No connection could be made because the target machine actively refused it.  
+> Done.  
+
+Isso ocorre porque o worker que falhou continua na lista de Workers(master.workers, adicionado em Register).
 
 ### Atividade ###
 
@@ -271,6 +280,12 @@ Removendo worker da lista
 > Running Worker.RunMap (ID: '2' File: 'map\map-2' Worker: '0')  
 > Operation Worker.RunMap '2' Failed. Error: read tcp 127.0.0.1:58749->127.0.0.1:5003: wsarecv: An existing connection was forcibly closed by the remote host.  
 > Removing worker 0 from master list.
+
+Mesmo com falhas, os workers são finalizados corretamente:
+> Worker.RunReduce operations completed   
+> Closing Remote Workers.   
+> Done.   
+
 
 ### Recuperação após Falhas
 
