@@ -1,35 +1,5 @@
-# CES-27 - LAB 1
-
-Instruções para configuração do ambiente: [Setup](SETUP.md)  
-Para saber mais sobre a utilização do Git, acessar: [Git Passo-a-Passo](GIT.md)  
+# CES-27 - LAB 1 - PART 2
 Para saber mais sobre a entrega do trabalho, acessar: [Entrega](ENTREGA.md)  
-
-## Informações Gerais:
-
-O bloco a seguir indica que um comando deve ser executado na linha de comando:
-```shell
-folder$ git --version
-```
-> git version 2.9.2.windows.1
-
-**folder** é a pasta onde o comando deve ser executado. Caso esteja vazio, o comando deve ser executado na pasta raiz do projeto (ces27-lab1).  
-**$** indica o começo do comando a ser executado.  
-**git version 2.9.2.windows.1** é a saída no console.  
-
-## MapReduce
-
-Nesse laboratório será implementada uma versão simplificada do modelo de programação MapReduce proposto por Jeffrey Dean e Sanjay Ghemawat no paper [MapReduce: Simplified Data Processing on Large Clusters](http://research.google.com/archive/mapreduce.html).
-Implementações de MapReduce normalmente rodam em grandes clusters executando paralelamente e de forma distribuída milhares de tarefas. Além disso, é fundamental que as frameworks sejam capazes de lidar com problemas básicos presentes em sistemas distribuídos: falhas e capacidade de operar em larga escala.
-
-O MapReduce é inspirado pelas funções map e reduce comumente utilizadas em programação funcional.
-
-**Map**  
-A função de Map é responsável por fazer um mapeamento dos dados de entrada em uma estrutura do tipo lista de chaves/valores. Esse mapeamento é executado de forma paralela para diversos dados de entradas gerando uma lista por *job* executado.
-
-**Reduce**  
-A função reduce recebe os resultados das funções de Map e faz uma sumarização dos valores obtidos, gerando uma nova lista de chaves/valores.
-
-Além dessas, outras funções são normalmente utilizadas: Shuffle(ou Partition), que vai distribuir os resultados dos maps em várias partições (múltiplos reduces), garantindo que os dados que similares serão alocados na mesma partição para ser executado por um mesmo Reduce.
 
 ## Parte II - Execução Distribuída com Tolerância a Falhas
 
