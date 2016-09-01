@@ -112,21 +112,6 @@ func fanOutData() (chan []mapreduce.KeyValue, chan bool) {
 // Reads input file and split it into files smaller than chunkSize.
 // CUTCUTCUTCUTCUT!
 func splitData(fileName string, chunkSize int) (numMapFiles int, err error) {
-	// 	When you are reading a file and the end-of-file is found, an error is returned.
-	// 	To check for it use the following code:
-	// 		if bytesRead, err = file.Read(buffer); err != nil {
-	// 			if err == io.EOF {
-	// 				// EOF error
-	// 			} else {
-	//				panic(err)
-	//			}
-	// 		}
-	//
-	// 	Use the mapFileName function generate the name of the files!
-
-	/////////////////////////
-	// YOUR CODE GOES HERE //
-	/////////////////////////
 	var (
 		file         *os.File
 		tempFile     *os.File

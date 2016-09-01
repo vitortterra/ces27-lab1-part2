@@ -12,17 +12,6 @@ import (
 // it should convert it into an array and parses it into an array of KeyValue that have
 // all the words in the input.
 func mapFunc(input []byte) (result []mapreduce.KeyValue) {
-	// 	Pay attention! We are getting an array of bytes.
-	//
-	// 	To decide if a character is a delimiter of a word, use the following check:
-	//		!unicode.IsLetter(c) && !unicode.IsNumber(c)
-	//
-	//	Map should also make words lower cased:
-	//		strings.ToLower(string)
-
-	/////////////////////////
-	// YOUR CODE GOES HERE //
-	/////////////////////////
 	var (
 		text          string
 		delimiterFunc func(c rune) bool
@@ -50,20 +39,6 @@ func mapFunc(input []byte) (result []mapreduce.KeyValue) {
 // reduceFunc is called for each merged array of KeyValue resulted from all map jobs.
 // It should return a similar array that summarizes all similar keys in the input.
 func reduceFunc(input []mapreduce.KeyValue) (result []mapreduce.KeyValue) {
-	// 	Maybe it's easier if we have an auxiliary structure? Which one?
-	//
-	// 	You can check if a map have a key as following:
-	// 		if _, ok := myMap[myKey]; !ok {
-	//			// Don't have the key
-	//		}
-	//
-	// 	Reduce will receive KeyValue pairs that have string values, you may need
-	// 	convert those values to int before being able to use it in operations.
-	//  	strconv.Atoi(string_number)
-
-	/////////////////////////
-	// YOUR CODE GOES HERE //
-	/////////////////////////
 	var (
 		countersMap map[string]int
 	)

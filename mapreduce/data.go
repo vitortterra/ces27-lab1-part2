@@ -118,3 +118,26 @@ func loadLocal(idReduce int) (data []KeyValue) {
 	file.Close()
 	return data
 }
+
+// FanIn is a pattern that will return a channel in which the goroutines generated here will keep
+// writing until the loop is done.
+// This is used to generate the name of all the reduce files.
+func fanReduceFilePath(numReduceJobs int) chan string {
+	var (
+		outputChan chan string
+		filePath   string
+	)
+
+	outputChan = make(chan string)
+
+	go func() {
+		for i := 0; i < numReduceJobs; i++ {
+			filePath = filepath.Join(REDUCE_PATH, mergeReduceName(i))
+
+			outputChan <- filePath
+		}
+
+		close(outputChan)
+	}()
+	return outputChan
+}

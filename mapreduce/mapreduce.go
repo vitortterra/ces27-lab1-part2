@@ -49,10 +49,11 @@ func RunSequential(task *Task) {
 //  - hostname: the tcp/ip address on which it will listen for connections.
 func RunMaster(task *Task, hostname string) {
 	var (
-		err          error
-		master       *Master
-		newRpcServer *rpc.Server
-		listener     net.Listener
+		err                error
+		master             *Master
+		newRpcServer       *rpc.Server
+		listener           net.Listener
+		reduceFilePathChan chan string
 	)
 
 	log.Println("Running Master on", hostname)
@@ -79,16 +80,21 @@ func RunMaster(task *Task, hostname string) {
 
 	master.listener = listener
 
-	go master.acceptMultipleConnections()
+	// Start MapReduce Operation
 
+	go master.acceptMultipleConnections()
 	go master.handleFailingWorkers()
 
-	master.scheduleMaps(task)
+	// Schedule map operations
+	master.schedule(task, "Worker.RunMap", task.InputFilePathChan)
 
 	// Merge the result of multiple map operation with the same reduceId into a single file
 	mergeLocal(task, master.mapCounter)
 
-	master.scheduleReduces(task)
+	// Schedule reduce operations
+	reduceFilePathChan = fanReduceFilePath(task.NumReduceJobs)
+
+	master.schedule(task, "Worker.RunReduce", reduceFilePathChan)
 
 	log.Println("Closing Remote Workers.")
 	for _, worker := range master.workers {
