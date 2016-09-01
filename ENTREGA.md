@@ -19,7 +19,7 @@ Dado isso, fica livre aos alunos compartilharem **casos de teste** e suas respec
 
 Todos os alunos devem possuir uma conta no [GitHub](https://github.com).
 
-Acessar o seguinte repositório: [CES-27 - Lab 1](https://github.com/PauloAguiar/ces27-lab1)
+Acessar o seguinte repositório: [CES-27 - Lab 1](https://github.com/PauloAguiar/ces27-lab1-part2)
 
 Fazer um Fork do repositório clicando no seguinte botão: ![Fork Button](https://help.github.com/assets/images/help/repository/fork_button.jpg)
 
@@ -30,13 +30,13 @@ Agora associado à sua conta existe uma cópia do repositório do laboratório.
 Vamos agora adicionar o seu fork como um repositório remoto do seu repositório local. Altere o trecho **CHANGE_USER** para o seu usuario do GitHub e execute o comando abaixo:
 
 ```shell
-$ git remote add fork https://github.com/CHANGE_USER/ces27-lab1
+$ git remote add fork https://github.com/CHANGE_USER/ces27-lab1-part2
 $ git remote -v
 ```
->fork   https://github.com/USER/ces27-lab1/ces27-lab1 (fetch)  
->fork   https://github.com/USER/ces27-lab1/ces27-lab1 (push)  
->origin https://github.com/pauloaguiar/ces27-lab1/ces27-lab1 (fetch)  
->origin https://github.com/pauloaguiar/ces27-lab1/ces27-lab1 (push)  
+>fork   https://github.com/USER/ces27-lab1/ces27-lab1-part2 (fetch)  
+>fork   https://github.com/USER/ces27-lab1/ces27-lab1-part2 (push)  
+>origin https://github.com/pauloaguiar/ces27-lab1/ces27-lab1-part2 (fetch)  
+>origin https://github.com/pauloaguiar/ces27-lab1/ces27-lab1-part2 (push)  
 
 ## Enviando a Solução
 
@@ -48,7 +48,7 @@ Utilizar as suas credenciais do GitHub.
 
 Com a sua solução já no seu repositório remoto, você deve ir até a página do mesmo e criar uma *pull request*:
 
-[https://github.com/CHANGE_USER/ces27-lab1](https://github.com/CHANGE_USER/ces27-lab1)
+[https://github.com/CHANGE_USER/ces27-lab1](https://github.com/CHANGE_USER/ces27-lab1-part2)
 
 ![New Pull Request](https://help.github.com/assets/images/help/pull_requests/pull-request-start-review-button.png)
 
@@ -81,6 +81,6 @@ Todos os alunos estão convidados a colaborar com o conteúdo da prática, propo
 
 Para relatar erros, por favor utilizar a ferramenta Issues do github no seguinte link:
 
-[Issues](https://github.com/PauloAguiar/ces27-lab1/issues)
+[Issues](https://github.com/PauloAguiar/ces27-lab1-part2/issues)
 
 Para enviar propostas de alterações, basta utilizar a ferramenta de *pull request* como mostrada acima, descrevendo nos comentários a mudança proposta. Nesse caso você deve fazer a request para o branch master do repositório base.
