@@ -94,7 +94,7 @@ func RunMaster(task *Task, hostname string) {
 	for _, worker := range master.workers {
 		err = worker.callRemoteWorker("Worker.Done", new(struct{}), new(struct{}))
 		if err != nil {
-			log.Panicln("Failed to close Remote Worker. Error:", err)
+			log.Println("Failed to close Remote Worker. Error:", err)
 		}
 	}
 
