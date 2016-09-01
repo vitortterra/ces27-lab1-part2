@@ -365,7 +365,7 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 
 ### Atividade
 
-Você deve alterar o código fornecido de forma que as operações que falhem sejam executadas. Uma solução simples canais de forma eficiente para comunicar operações que falharam entre goroutines (que podem ser criadas pelo aluno).
+Você deve alterar o código fornecido de forma que as operações que falhem sejam executadas. Uma solução simples utiliza canais de forma eficiente para comunicar operações que falharam entre goroutines (que podem ser criadas pelo aluno).
 
 É indicado que alterações sejam feitas apenas nos seguintes arquivos
 
@@ -402,12 +402,12 @@ Uma solução completamente funcional pode ser obtida em poucas linhas de códig
 
 ### Execução Final
 
-Um arquivo de teste é incluído junto ao código. Para executá-lo basta iniciar um Master com o seguinte comando:
+Um arquivo de teste é incluído junto ao código. Para executá-lo basta iniciar o Master com o seguinte comando:
 ```bash
 wordcount$ go run main.go data.go wordcount.go -mode distributed -type master -file files/teste.txt -chunksize 16 -reducejobs 3
 ```
 
-Conectando pelo menos um worker a este Master, a operação deve ser concluída desde que este único worker não falhe. Para testar a execução com falhas, basta executar um Worker com -fail e após a falha executar um outro worker normal. A saída não deve mudar
+Conectando pelo menos um worker a este Master, a operação deve ser concluída desde que este único worker não falhe. Para testar a execução com falhas, basta executar um Worker com -fail e após a falha executar um outro worker normal. A saída não deve mudar.
 
 A saída final deve estar em result/result-final. A ordem pode variar (essa aqui está em ordem alfabetica)
 
@@ -437,3 +437,6 @@ A saída final deve estar em result/result-final. A ordem pode variar (essa aqui
 > {"Key":"ver","Value":"1"}  
 > {"Key":"vezes","Value":"1"}  
 
+É recomendado que o aluno teste as diversas configurações que incluem um Master e:
+ * 1 ou mais Workers normais
+ * 1 ou mais Workers com falha
