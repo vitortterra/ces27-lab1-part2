@@ -30,8 +30,13 @@ type Master struct {
 	mapCounter    int
 	reduceCounter int
 
+	///////////////////////////////
+	// ADD EXTRA PROPERTIES HERE //
+	///////////////////////////////
 	// Fault Tolerance
-	retryOperation chan *Operation
+
+	// Maybe you want to use something like?
+	// 	retryOperation chan *Operation
 }
 
 type Operation struct {

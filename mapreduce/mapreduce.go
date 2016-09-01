@@ -93,7 +93,6 @@ func RunMaster(task *Task, hostname string) {
 
 	// Schedule reduce operations
 	reduceFilePathChan = fanReduceFilePath(task.NumReduceJobs)
-
 	master.schedule(task, "Worker.RunReduce", reduceFilePathChan)
 
 	log.Println("Closing Remote Workers.")
