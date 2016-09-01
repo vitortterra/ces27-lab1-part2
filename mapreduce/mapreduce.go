@@ -111,8 +111,7 @@ func RunMaster(task *Task, hostname string) {
 // master.
 // Induced failures:
 // -> nOps = number of operations to run before failure (0 = no failure)
-// -> during = if failure should occur during next task
-func RunWorker(task *Task, hostname string, masterHostname string, nOps int, during bool) {
+func RunWorker(task *Task, hostname string, masterHostname string, nOps int) {
 	var (
 		err           error
 		worker        *Worker
@@ -135,7 +134,6 @@ func RunWorker(task *Task, hostname string, masterHostname string, nOps int, dur
 	if nOps > 0 {
 		worker.taskCounter = 0
 		worker.nOps = nOps
-		worker.during = during
 	}
 
 	rpcs = rpc.NewServer()

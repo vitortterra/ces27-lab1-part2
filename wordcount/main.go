@@ -24,8 +24,7 @@ var (
 	master = flag.String("master", "localhost:5000", "Master address")
 
 	// Induced failure on Worker
-	nOps   = flag.Int("fail", 0, "Number of operations to run before failure")
-	during = flag.Bool("during", false, "Fail during next task")
+	nOps = flag.Int("fail", 0, "Number of operations to run before failure")
 )
 
 // Code Entry Point
@@ -118,12 +117,11 @@ func main() {
 			if *nOps > 0 {
 				log.Println("Induced failure")
 				log.Printf("After %v operations\n", *nOps)
-				log.Println("Fail during operation:", *during)
 			}
 
 			hostname = *addr + ":" + strconv.Itoa(*port)
 
-			mapreduce.RunWorker(task, hostname, *master, *nOps, *during)
+			mapreduce.RunWorker(task, hostname, *master, *nOps)
 		}
 	}
 }

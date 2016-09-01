@@ -22,7 +22,6 @@ type Worker struct {
 	// Induced failures
 	taskCounter int
 	nOps        int
-	during      bool
 }
 
 // Call RPC Register on Master to notify that this worker is ready to receive operations.
@@ -114,15 +113,6 @@ func (worker *Worker) shouldFail(during bool) bool {
 		return false
 	}
 
-	if !during {
-		worker.taskCounter++
-	}
-
-	if worker.taskCounter == worker.nOps {
-		if during == worker.during {
-			return true
-		}
-	}
-
-	return false
+	worker.taskCounter++
+	return worker.taskCounter == worker.nOps
 }

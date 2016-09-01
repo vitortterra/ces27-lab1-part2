@@ -28,10 +28,6 @@ func (worker *Worker) RunMap(args *RunArgs, _ *struct{}) error {
 		log.Fatal(err)
 	}
 
-	if worker.shouldFail(true) {
-		panic("Induced failure.")
-	}
-
 	mapResult = worker.task.Map(buffer)
 	storeLocal(worker.task, args.Id, mapResult)
 	return nil
@@ -52,10 +48,6 @@ func (worker *Worker) RunReduce(args *RunArgs, _ *struct{}) error {
 	data := loadLocal(args.Id)
 
 	reduceResult = worker.task.Reduce(data)
-
-	if worker.shouldFail(true) {
-		panic("Induced failure.")
-	}
 
 	if file, err = os.Create(resultFileName(args.Id)); err != nil {
 		log.Fatal(err)
