@@ -40,10 +40,17 @@ $ git remote -v
 
 ## Enviando a Solução
 
+Antes do envio, tenha certeza de ter dado *commit* nas suas alterações.
+
+```shell
+$ git status
+```
+
 Quando estiver pronto para enviar a sua solução, o aluno deve dar *push* do seu repositório local para o repositório remoto *fork*:
 
-**$ git push fork**
-
+```shell
+$ git push fork
+```
 Utilizar as suas credenciais do GitHub.
 
 Com a sua solução já no seu repositório remoto, você deve ir até a página do mesmo e criar uma *pull request*:
