@@ -7,7 +7,7 @@ import (
 
 // Schedules map operations on remote workers. This will run until InputFilePathChan
 // is closed. If there is no worker available, it'll block.
-func (master *Master) schedule(task *Task, proc string, filePathChan chan string) {
+func (master *Master) schedule(task *Task, proc string, filePathChan chan string) int {
 	//////////////////////////////////
 	// YOU WANT TO MODIFY THIS CODE //
 	//////////////////////////////////
@@ -34,7 +34,8 @@ func (master *Master) schedule(task *Task, proc string, filePathChan chan string
 
 	wg.Wait()
 
-	log.Printf("%v operations completed\n", proc)
+	log.Printf("%vx %v operations completed\n", counter, proc)
+	return counter
 }
 
 // runOperation start a single operation on a RemoteWorker and wait for it to return or fail.

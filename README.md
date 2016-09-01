@@ -93,7 +93,7 @@ Master:
 > Done.  
 
 Worker:
-> Registered. WorkerId: 0  
+> Registered. WorkerId: 0 (Settings = (ReduceJobs: 5))
 > Accepting connections on 127.0.0.1:5001  
 > Running map id: 0, path: map\map-0  
 > Running map id: 1, path: map\map-1  
@@ -398,4 +398,42 @@ func (master *Master) runOperation(remoteWorker *RemoteWorker, operation *Operat
 }
 ```
 
-Uma solução completamente funcional pode ser obtida em poucas linhas de código (~10 no total), desde que haja um bom entendimento do funcionamento da concorrência em Go (Goroutines, Channels, WaitGrouds, Mutexes).
+Uma solução completamente funcional pode ser obtida em poucas linhas de código (~12 no total), desde que haja um bom entendimento do funcionamento da concorrência em Go (Goroutines, Channels, WaitGroups, Mutexes).
+
+### Execução Final
+
+Um arquivo de teste é incluído junto ao código. Para executá-lo basta iniciar um Master com o seguinte comando:
+```bash
+wordcount$ go run main.go data.go wordcount.go -mode distributed -type master -file files/teste.txt -chunksize 16 -reducejobs 3
+```
+
+Conectando pelo menos um worker a este Master, a operação deve ser concluída desde que este único worker não falhe. Para testar a execução com falhas, basta executar um Worker com -fail e após a falha executar um outro worker normal. A saída não deve mudar
+
+A saída final deve estar em result/result-final. A ordem pode variar (essa aqui está em ordem alfabetica)
+
+> {"Key":"a","Value":"2"}  
+> {"Key":"apenas","Value":"1"}  
+> {"Key":"contagem","Value":"1"}  
+> {"Key":"correto","Value":"1"}  
+> {"Key":"da","Value":"1"}  
+> {"Key":"de","Value":"1"}  
+> {"Key":"deve","Value":"1"}  
+> {"Key":"e","Value":"1"}  
+> {"Key":"esta","Value":"1"}  
+> {"Key":"exemplo","Value":"1"}  
+> {"Key":"funcionamento","Value":"1"}  
+> {"Key":"o","Value":"1"}  
+> {"Key":"ocorrencia","Value":"1"}  
+> {"Key":"ocorrer","Value":"1"}  
+> {"Key":"palavra","Value":"1"}  
+> {"Key":"palavras","Value":"1"}  
+> {"Key":"para","Value":"1"}  
+> {"Key":"por","Value":"1"}  
+> {"Key":"que","Value":"1"}  
+> {"Key":"sendo","Value":"1"}  
+> {"Key":"teste","Value":"3"}  
+> {"Key":"tres","Value":"1"}  
+> {"Key":"ultima","Value":"1"}  
+> {"Key":"ver","Value":"1"}  
+> {"Key":"vezes","Value":"1"}  
+

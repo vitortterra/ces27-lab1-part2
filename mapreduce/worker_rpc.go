@@ -2,15 +2,9 @@ package mapreduce
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
-)
-
-const (
-	RESULT_PATH = "result/"
 )
 
 // RPC - RunMap
@@ -71,9 +65,4 @@ func (worker *Worker) Done(_ *struct{}, _ *struct{}) error {
 		close(worker.done)
 	}()
 	return nil
-}
-
-// Support function to generate the name of result files
-func resultFileName(id int) string {
-	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
 }

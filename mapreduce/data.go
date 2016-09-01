@@ -10,6 +10,7 @@ import (
 
 const (
 	REDUCE_PATH = "reduce/"
+	RESULT_PATH = "result/"
 )
 
 // Returns the name of files created after merge
@@ -51,7 +52,7 @@ func storeLocal(task *Task, idMapTask int, data []KeyValue) {
 }
 
 // Merge the result from all the map operations by reduce job id.
-func mergeLocal(task *Task, mapCounter int) {
+func mergeMapLocal(task *Task, mapCounter int) {
 	var (
 		err              error
 		file             *os.File
@@ -87,6 +88,41 @@ func mergeLocal(task *Task, mapCounter int) {
 		}
 
 		mergeFile.Close()
+	}
+}
+
+// Merge the result from all the map operations by reduce job id.
+func mergeReduceLocal(reduceCounter int) {
+	var (
+		err              error
+		file             *os.File
+		fileDecoder      *json.Decoder
+		mergeFile        *os.File
+		mergeFileEncoder *json.Encoder
+	)
+	if mergeFile, err = os.Create(filepath.Join(RESULT_PATH, "result-final.txt")); err != nil {
+		log.Fatal(err)
+	}
+
+	mergeFileEncoder = json.NewEncoder(mergeFile)
+
+	for r := 0; r < reduceCounter; r++ {
+		if file, err = os.Open(resultFileName(r)); err != nil {
+			log.Fatal(err)
+		}
+
+		fileDecoder = json.NewDecoder(file)
+
+		for {
+			var kv KeyValue
+			err = fileDecoder.Decode(&kv)
+			if err != nil {
+				break
+			}
+
+			mergeFileEncoder.Encode(&kv)
+		}
+		file.Close()
 	}
 }
 
@@ -159,4 +195,9 @@ func fanReduceFilePath(numReduceJobs int) chan string {
 		close(outputChan)
 	}()
 	return outputChan
+}
+
+// Support function to generate the name of result files
+func resultFileName(id int) string {
+	return filepath.Join(RESULT_PATH, fmt.Sprintf("result-%v", id))
 }

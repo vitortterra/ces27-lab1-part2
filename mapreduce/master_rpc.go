@@ -22,6 +22,6 @@ func (master *Master) Register(args *RegisterArgs, reply *RegisterReply) error {
 
 	master.idleWorkerChan <- newWorker
 
-	*reply = RegisterReply{newWorker.id}
+	*reply = RegisterReply{newWorker.id, master.task.NumReduceJobs}
 	return nil
 }

@@ -13,6 +13,9 @@ const (
 )
 
 type Master struct {
+	// Task
+	task *Task
+
 	// Network
 	address   string
 	rpcServer *rpc.Server
@@ -25,10 +28,6 @@ type Master struct {
 
 	idleWorkerChan   chan *RemoteWorker
 	failedWorkerChan chan *RemoteWorker
-
-	// Operation
-	mapCounter    int
-	reduceCounter int
 
 	///////////////////////////////
 	// ADD EXTRA PROPERTIES HERE //
@@ -50,8 +49,6 @@ func newMaster(address string) (master *Master) {
 	master.idleWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.failedWorkerChan = make(chan *RemoteWorker, IDLE_WORKER_BUFFER)
 	master.totalWorkers = 0
-	master.mapCounter = 0
-	master.reduceCounter = 0
 	return
 }
 

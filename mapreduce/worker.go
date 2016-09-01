@@ -43,7 +43,8 @@ func (worker *Worker) register() error {
 
 	if err == nil {
 		worker.id = reply.WorkerId
-		log.Printf("Registered. WorkerId: %v\n", worker.id)
+		worker.task.NumReduceJobs = reply.ReduceJobs
+		log.Printf("Registered. WorkerId: %v (Settings = (ReduceJobs: %v))\n", worker.id, worker.task.NumReduceJobs)
 	}
 
 	return err

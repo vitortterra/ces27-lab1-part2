@@ -31,7 +31,7 @@ func RunSequential(task *Task) {
 		mapCounter++
 	}
 
-	mergeLocal(task, mapCounter)
+	mergeMapLocal(task, mapCounter)
 
 	for r := 0; r < task.NumReduceJobs; r++ {
 		data := loadLocal(r)
@@ -54,6 +54,8 @@ func RunMaster(task *Task, hostname string) {
 		newRpcServer       *rpc.Server
 		listener           net.Listener
 		reduceFilePathChan chan string
+		mapOperations      int
+		reduceOperations   int
 	)
 
 	log.Println("Running Master on", hostname)
@@ -64,6 +66,7 @@ func RunMaster(task *Task, hostname string) {
 
 	master = newMaster(hostname)
 
+	master.task = task
 	newRpcServer = rpc.NewServer()
 	newRpcServer.Register(master)
 
@@ -87,14 +90,16 @@ func RunMaster(task *Task, hostname string) {
 	go master.handleFailingWorkers()
 
 	// Schedule map operations
-	master.schedule(task, "Worker.RunMap", task.InputFilePathChan)
+	mapOperations = master.schedule(task, "Worker.RunMap", task.InputFilePathChan)
 
 	// Merge the result of multiple map operation with the same reduceId into a single file
-	mergeLocal(task, master.mapCounter)
+	mergeMapLocal(task, mapOperations)
 
 	// Schedule reduce operations
 	reduceFilePathChan = fanReduceFilePath(task.NumReduceJobs)
-	master.schedule(task, "Worker.RunReduce", reduceFilePathChan)
+	reduceOperations = master.schedule(task, "Worker.RunReduce", reduceFilePathChan)
+
+	mergeReduceLocal(reduceOperations)
 
 	log.Println("Closing Remote Workers.")
 	for _, worker := range master.workers {

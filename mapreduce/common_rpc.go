@@ -7,7 +7,8 @@ type RegisterArgs struct {
 }
 
 type RegisterReply struct {
-	WorkerId int
+	WorkerId   int
+	ReduceJobs int
 }
 
 type RunArgs struct {
